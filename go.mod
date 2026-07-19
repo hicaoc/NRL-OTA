@@ -1,4 +1,4 @@
-module github.com/nrl3188/ota-server
+module github.com/hicaoc/NRL-OTA
 
 go 1.25.0
 

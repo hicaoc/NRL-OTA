@@ -148,8 +148,186 @@ func TestMCPRequiresAdminAndListsTools(t *testing.T) {
 	if authorized.Code != http.StatusOK {
 		t.Fatalf("authorized status = %d, body = %s", authorized.Code, authorized.Body.String())
 	}
-	if !strings.Contains(authorized.Body.String(), `catalog.list`) || !strings.Contains(authorized.Body.String(), `board.publish`) {
-		t.Fatalf("MCP tools missing from response: %s", authorized.Body.String())
+	for _, tool := range []string{`catalog.list`, `board.publish`, `firmware.list`, `firmware.create_upload`, `firmware.get_status`, `firmware.publish`, `firmware.archive`, `firmware.restore`} {
+		if !strings.Contains(authorized.Body.String(), tool) {
+			t.Fatalf("MCP tool %s missing from response: %s", tool, authorized.Body.String())
+		}
+	}
+}
+
+func TestFirmwareMCPStagesPublishesArchivesAndRestoresPackage(t *testing.T) {
+	dataDir := t.TempDir()
+	db, err := sql.Open("sqlite", filepath.Join(dataDir, "firmware-mcp.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = initDB(db); err != nil {
+		t.Fatal(err)
+	}
+	s := &server{
+		db:                 db,
+		adminToken:         "admin",
+		firmwareDir:        filepath.Join(dataDir, "firmware"),
+		packagesDir:        filepath.Join(dataDir, "packages"),
+		firmwareUploadsDir: filepath.Join(dataDir, "firmware-uploads"),
+	}
+	for _, dir := range []string{s.firmwareDir, s.packagesDir, s.firmwareUploadsDir} {
+		if err = os.MkdirAll(dir, 0750); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	created, err := s.createFirmwareUpload(mcpFirmwareCreateUploadInput{
+		Board: "gezipai", Version: "9.9.9", Channel: "stable", Notes: "reviewed release notes", TTLMinutes: 15,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.UploadToken == "" || created.UploadPath == "" || created.ExpiresAt <= 0 {
+		t.Fatalf("incomplete upload session: %#v", created)
+	}
+	if _, err = s.createFirmwareUpload(mcpFirmwareCreateUploadInput{Board: "gezipai", Version: "9.9.9"}); err == nil || !strings.Contains(err.Error(), "active firmware upload") {
+		t.Fatalf("duplicate active upload was not rejected: %v", err)
+	}
+	meta := packageMeta{
+		Board: "gezipai", Version: "9.9.9", Channel: "stable", Notes: "untrusted upload notes",
+		ChipFamily: "ESP32-S3", AppOffset: 0x10000,
+		Parts: []packagePart{
+			{Offset: 0, Name: "bootloader.bin"},
+			{Offset: 0x10000, Name: "nrl-esp32.bin"},
+		},
+	}
+	request := packageRequest(t, meta, map[string][]byte{
+		"bootloader.bin": []byte("bootloader"),
+		"nrl-esp32.bin":  []byte("application image"),
+	})
+	request.SetPathValue("id", created.UploadID)
+	request.Header.Del("X-OTA-Token")
+	request.Header.Set("Authorization", "Bearer "+created.UploadToken)
+	recorder := httptest.NewRecorder()
+	s.uploadFirmwareSession(recorder, request)
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("stage status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+
+	status, err := s.firmwareUploadStatus(created.UploadID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Status != "uploaded" || status.SHA256 == "" || status.PartCount != 2 {
+		t.Fatalf("unexpected staged status: %#v", status)
+	}
+	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 0 {
+		t.Fatalf("staged firmware became device-visible: releases=%#v err=%v", releases, err)
+	}
+	stagedMeta, err := os.ReadFile(filepath.Join(s.firmwareUploadPath(created.UploadID), "package.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(stagedMeta), `"notes": "reviewed release notes"`) || strings.Contains(string(stagedMeta), "untrusted upload notes") {
+		t.Fatalf("session release notes were not enforced: %s", stagedMeta)
+	}
+
+	published, err := s.publishFirmwareUpload(created.UploadID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if published.Status != "published" || published.SHA256 != status.SHA256 || !published.WebFlashable {
+		t.Fatalf("unexpected publish result: %#v", published)
+	}
+	if _, err = os.Stat(filepath.Join(s.packageDir("gezipai", "9.9.9"), "package.json")); err != nil {
+		t.Fatalf("published package missing: %v", err)
+	}
+	if again, err := s.publishFirmwareUpload(created.UploadID); err != nil || again.SHA256 != published.SHA256 {
+		t.Fatalf("idempotent publish failed: result=%#v err=%v", again, err)
+	}
+	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 1 {
+		t.Fatalf("published firmware is not device-visible: releases=%#v err=%v", releases, err)
+	}
+
+	action := mcpFirmwareReleaseActionInput{Board: "gezipai", Version: "9.9.9", Channel: "stable", Confirm: true}
+	if _, err = s.setFirmwareArchived(action, true); err != nil {
+		t.Fatal(err)
+	}
+	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 0 {
+		t.Fatalf("archived firmware is still device-visible: releases=%#v err=%v", releases, err)
+	}
+	managed, err := s.managedReleases(mcpFirmwareListInput{Board: "gezipai", IncludeArchived: true})
+	if err != nil || len(managed) != 1 || managed[0].ArchivedAt == 0 {
+		t.Fatalf("archived firmware missing from administrator list: releases=%#v err=%v", managed, err)
+	}
+	if _, err = s.setFirmwareArchived(action, false); err != nil {
+		t.Fatal(err)
+	}
+	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 1 {
+		t.Fatalf("restored firmware is not device-visible: releases=%#v err=%v", releases, err)
+	}
+
+	events, err := s.auditEvents(20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"firmware.create_upload", "firmware.upload", "firmware.publish", "firmware.archive", "firmware.restore"} {
+		found := false
+		for _, event := range events {
+			if event.Action == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("audit action %q missing: %#v", expected, events)
+		}
+	}
+}
+
+func TestFirmwareUploadTokenIsOneTimeAndSessionMetadataMustMatch(t *testing.T) {
+	dataDir := t.TempDir()
+	db, err := sql.Open("sqlite", filepath.Join(dataDir, "one-time.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = initDB(db); err != nil {
+		t.Fatal(err)
+	}
+	s := &server{
+		db: db, packagesDir: filepath.Join(dataDir, "packages"), firmwareUploadsDir: filepath.Join(dataDir, "uploads"),
+	}
+	for _, dir := range []string{s.packagesDir, s.firmwareUploadsDir} {
+		if err = os.MkdirAll(dir, 0750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	created, err := s.createFirmwareUpload(mcpFirmwareCreateUploadInput{Board: "gezipai", Version: "1.2.3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta := packageMeta{
+		Board: "bh4tdv", Version: "1.2.3", Channel: "stable", ChipFamily: "ESP32-S3", AppOffset: 0,
+		Parts: []packagePart{{Offset: 0, Name: "app.bin"}},
+	}
+	request := packageRequest(t, meta, map[string][]byte{"app.bin": []byte("app")})
+	request.SetPathValue("id", created.UploadID)
+	request.Header.Set("Authorization", "Bearer "+created.UploadToken)
+	recorder := httptest.NewRecorder()
+	s.uploadFirmwareSession(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("mismatched metadata status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	status, err := s.firmwareUploadStatus(created.UploadID)
+	if err != nil || status.Status != "failed" {
+		t.Fatalf("failed upload status = %#v, err=%v", status, err)
+	}
+
+	replay := packageRequest(t, meta, map[string][]byte{"app.bin": []byte("app")})
+	replay.SetPathValue("id", created.UploadID)
+	replay.Header.Set("Authorization", "Bearer "+created.UploadToken)
+	recorder = httptest.NewRecorder()
+	s.uploadFirmwareSession(recorder, replay)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("replayed token status = %d, want 401; body = %s", recorder.Code, recorder.Body.String())
 	}
 }
 

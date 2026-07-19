@@ -80,7 +80,7 @@ cd NRL-OTA\frontend
 
 管理员通过页面右上角使用 `OTA_ADMIN_USER` / `OTA_ADMIN_PASSWORD` 登录。登录成功后会返回一个有效期为 12 小时、用于授权管理 API 的签名会话令牌。长期有效的 `OTA_ADMIN_TOKEN` 仍可直接用于 API，自动发布脚本正是使用该令牌。未设置 `OTA_ADMIN_PASSWORD` 时，密码登录功能会被禁用并返回 HTTP 503。会话令牌使用每次进程启动时生成的密钥签名，因此重启服务器会使所有管理员退出登录。
 
-## AI / MCP 板卡管理
+## AI / MCP 管理
 
 服务在 `/mcp` 提供 MCP Streamable HTTP 接口；通过示例反向代理访问时地址为 `https://<host>/nrlota/api/mcp`。每个请求都必须携带 `Authorization: Bearer <OTA_ADMIN_TOKEN或管理员会话令牌>`。当前提供以下工具：
 
@@ -89,10 +89,37 @@ cd NRL-OTA\frontend
 - `feature.save`：创建或更新功能定义；
 - `board.set_features`：设置板卡功能矩阵；
 - `board.upload_image`：提交不超过 5 MB 的 base64 JPEG/PNG/WebP 图片；
-- `board.publish`：显式确认后发布资料完整的板卡。
-- `audit.list`：查看最近的页面/API/MCP 板卡目录变更记录。
+- `board.publish`：显式确认后发布资料完整的板卡；
+- `firmware.list`：查询有效或已下架的固件版本；
+- `firmware.create_upload`：创建短期、一次性的固件上传路径与令牌；
+- `firmware.get_status`：查询上传、校验与发布状态；
+- `firmware.publish`：显式确认后发布暂存的完整刷机包；
+- `firmware.archive`：下架版本但保留固件文件；
+- `firmware.restore`：恢复已下架版本；
+- `audit.list`：查看最近的页面、上传接口及 MCP 管理变更记录。
 
 AI 提交默认保存为草稿。公开发布被设计成独立操作，并要求板卡已具备双语名称、图片和至少一个功能配置。管理页面还提供“AI / JSON 导入”，可一次导入板卡资料、功能定义和功能状态；图片继续走独立校验接口。远程公网部署应在 HTTPS 反向代理后使用，并为 MCP 配置专用的短期管理员会话；长期机器令牌更适合受控自动化环境。
+
+### 通过 MCP 发布固件
+
+固件发布采用两阶段流程，数 MB 的固件二进制不会进入 MCP JSON 或模型上下文：
+
+1. 调用 `firmware.create_upload`，传入板卡、版本、通道、发布说明和可选有效期；返回短期 `upload_path` 与一次性 Bearer Token。
+2. 以 `/mcp` 所在域名为基准解析 `upload_path`，通过 HTTP POST 上传完整刷机包的 multipart 数据：一个 `meta` JSON 字段，加上 `meta.parts[]` 中每个分区对应的 `.bin` 文件字段。字段名和上传文件名都必须等于分区名称。
+3. 调用 `firmware.get_status`。状态为 `uploaded` 时固件仍在暂存目录，对设备不可见。
+4. 检查返回的板卡、版本、SHA-256、大小和分区数量，再使用上传 ID 调用 `firmware.publish`，并明确设置 `confirm=true`。
+
+例如，将现有发布脚本使用的元数据保存为 `package.json` 后上传：
+
+```bash
+curl -X POST "https://ota.example.com${UPLOAD_PATH}" \
+  -H "Authorization: Bearer ${UPLOAD_TOKEN}" \
+  -F "meta=<package.json" \
+  -F "bootloader.bin=@build/bootloader.bin;filename=bootloader.bin" \
+  -F "nrl-esp32.bin=@build/nrl-esp32.bin;filename=nrl-esp32.bin"
+```
+
+上传会话会在接收二进制前锁定板卡、版本、通道和发布说明。Token 只能使用一次，默认 30 分钟失效，数据库只保存其 SHA-256；上传失败或过期后必须创建新会话。`firmware.archive` 只会从设备版本列表、公开历史和网页刷机 manifest 中隐藏版本，不删除文件；`firmware.restore` 可以恢复。正式发布、下架和恢复都要求 `confirm=true`，并写入审计记录。
 
 固件构建与上传客户端继续保留在独立的
 [`NRL-ESP32`](https://github.com/hicaoc/NRL-ESP32) 仓库。要在原生固件构建成功后自动发布，请在 `NRL-ESP32` 工作区设置以下变量（只有同时设置前两个变量才会执行上传）：

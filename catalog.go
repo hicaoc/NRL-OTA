@@ -65,7 +65,7 @@ type catalogResponse struct {
 
 func initDB(db *sql.DB) error {
 	if _, err := db.Exec(`PRAGMA foreign_keys=ON;
-CREATE TABLE IF NOT EXISTS releases (id INTEGER PRIMARY KEY, board_type TEXT NOT NULL, version TEXT NOT NULL, channel TEXT NOT NULL, filename TEXT NOT NULL, sha256 TEXT NOT NULL, size INTEGER NOT NULL, notes TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE(board_type,version,channel));
+CREATE TABLE IF NOT EXISTS releases (id INTEGER PRIMARY KEY, board_type TEXT NOT NULL, version TEXT NOT NULL, channel TEXT NOT NULL, filename TEXT NOT NULL, sha256 TEXT NOT NULL, size INTEGER NOT NULL, notes TEXT NOT NULL, created_at INTEGER NOT NULL, archived_at INTEGER NOT NULL DEFAULT 0, UNIQUE(board_type,version,channel));
 CREATE TABLE IF NOT EXISTS devices (device_id TEXT PRIMARY KEY, board_type TEXT NOT NULL, firmware_version TEXT NOT NULL, ip_address TEXT NOT NULL, metadata_json TEXT NOT NULL, first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS boards (
@@ -98,11 +98,24 @@ CREATE TABLE IF NOT EXISTS admin_audit (
  id INTEGER PRIMARY KEY,
  source TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL,
  detail_json TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS firmware_uploads (
+ id TEXT PRIMARY KEY,
+ token_hash TEXT NOT NULL,
+ board_type TEXT NOT NULL, version TEXT NOT NULL, channel TEXT NOT NULL,
+ notes TEXT NOT NULL DEFAULT '',
+ status TEXT NOT NULL CHECK(status IN ('pending','uploading','uploaded','published','failed','expired')),
+ app_name TEXT NOT NULL DEFAULT '', sha256 TEXT NOT NULL DEFAULT '',
+ size INTEGER NOT NULL DEFAULT 0, part_count INTEGER NOT NULL DEFAULT 0,
+ error TEXT NOT NULL DEFAULT '',
+ created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+ updated_at INTEGER NOT NULL, published_at INTEGER NOT NULL DEFAULT 0
 );`); err != nil {
 		return err
 	}
 	// Legacy releases derive their URL from filename. This remains idempotent.
 	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN url TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN archived_at INTEGER NOT NULL DEFAULT 0`)
 	return seedCatalog(db)
 }
 

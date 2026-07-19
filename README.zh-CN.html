@@ -38,6 +38,10 @@ $env:OTA_DEVICE_TOKEN = 'optional-device-access-token'
     <p>网站是菜单式单页应用（SPA），提供以下页面：</p>
     <ul><li><strong>首页</strong>：板卡介绍。</li><li><strong>固件</strong>：按板卡展示版本历史和更新日志。</li><li><strong>USB 烧录</strong>：浏览器内 USB 全量烧录。</li><li><strong>设备</strong>：管理员登录后可见的设备管理面板，显示每台设备的在线状态、板卡型号、固件版本（含可升级标记）、NRL 呼号、SSID、IP 地址和最后在线时间。</li></ul>
     <p>管理员通过页面右上角使用 <code>OTA_ADMIN_USER</code> / <code>OTA_ADMIN_PASSWORD</code> 登录。登录成功后会返回一个有效期为 12 小时、用于授权管理 API 的签名会话令牌。长期有效的 <code>OTA_ADMIN_TOKEN</code> 仍可直接用于 API，自动发布脚本正是使用该令牌。未设置 <code>OTA_ADMIN_PASSWORD</code> 时，密码登录功能会被禁用并返回 HTTP 503。会话令牌使用每次进程启动时生成的密钥签名，因此重启服务器会使所有管理员退出登录。</p>
+    <h2>AI / MCP 管理</h2>
+    <p>服务在 <code>/mcp</code> 提供需要管理员 Bearer Token 的 MCP Streamable HTTP 接口。除板卡和功能管理外，还提供 <code>firmware.list</code>、<code>firmware.create_upload</code>、<code>firmware.get_status</code>、<code>firmware.publish</code>、<code>firmware.archive</code> 和 <code>firmware.restore</code>。</p>
+    <p>固件发布采用两阶段流程：AI 先通过 <code>firmware.create_upload</code> 创建短期一次性上传路径和 Token，再通过 multipart HTTP 上传 <code>meta</code> JSON 与各分区 <code>.bin</code> 文件。上传完成后固件仍在暂存区，对设备不可见；检查 SHA-256、大小和分区数量后，调用 <code>firmware.publish</code> 并设置 <code>confirm=true</code> 才会正式发布。</p>
+    <p>上传 Token 默认 30 分钟失效，只能使用一次，数据库仅保存其 SHA-256。<code>firmware.archive</code> 下架版本时不会删除文件，<code>firmware.restore</code> 可恢复；发布、下架和恢复均写入审计记录。</p>
     <p>要在原生固件构建成功后自动发布，请在构建环境中设置以下变量（只有同时设置前两个变量才会执行上传）：</p>
     <pre><code class="language-powershell">$env:OTA_SERVER_URL = 'https://ota.example.com'
 $env:OTA_UPLOAD_TOKEN = $env:OTA_ADMIN_TOKEN

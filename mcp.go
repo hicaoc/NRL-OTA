@@ -63,7 +63,7 @@ type mcpMutationOutput struct {
 func (s *server) mcpHandler() http.Handler {
 	ms := mcp.NewServer(&mcp.Implementation{
 		Name:    "nrl-ota-catalog",
-		Version: "1.0.0",
+		Version: "1.1.0",
 	}, nil)
 
 	mcp.AddTool(ms, &mcp.Tool{
@@ -223,6 +223,8 @@ func (s *server) mcpHandler() http.Handler {
 		s.recordAudit("mcp", "board.publish", input.BoardID, map[string]any{"status": "published"})
 		return nil, mcpMutationOutput{ID: input.BoardID, Status: "published", Message: "board published"}, nil
 	})
+
+	s.registerFirmwareMCPTools(ms)
 
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return ms }, &mcp.StreamableHTTPOptions{
 		Stateless:                  true,

@@ -105,14 +105,17 @@ accepted directly and is what the machine publish pipeline uses. Password login
 is disabled (HTTP 503) until `OTA_ADMIN_PASSWORD` is set. Session tokens are
 signed with a per-process secret, so restarting the server logs admins out.
 
-## AI / MCP board management
+## AI / MCP management
 
 The server exposes MCP Streamable HTTP at `/mcp`, or
 `https://<host>/nrlota/api/mcp` through the example reverse proxy. Every request
 must send `Authorization: Bearer <OTA_ADMIN_TOKEN-or-admin-session>`. Available
 tools are `catalog.list`, `board.save_draft`, `feature.save`,
 `board.set_features`, `board.upload_image`, and `board.publish`.
-`audit.list` returns recent board-catalog changes made through the admin API or MCP.
+Firmware tools are `firmware.list`, `firmware.create_upload`,
+`firmware.get_status`, `firmware.publish`, `firmware.archive`, and
+`firmware.restore`. `audit.list` returns recent changes made through the admin
+API, upload endpoint, or MCP.
 
 AI submissions land as drafts by default. Public publication is a separate,
 explicitly confirmed tool and requires bilingual names, an image, and at least
@@ -122,6 +125,41 @@ transaction; images continue through the separately validated upload path.
 Expose MCP only behind HTTPS and prefer short-lived administrator sessions for
 interactive remote clients; the long-lived machine token is intended for
 controlled automation.
+
+### MCP firmware publishing
+
+Firmware publishing uses a two-phase design so multi-megabyte binaries never
+enter MCP JSON or model context:
+
+1. Call `firmware.create_upload` with the board, version, channel, release
+   notes, and optional lifetime. It returns a short-lived `upload_path` and a
+   one-time bearer token.
+2. Resolve `upload_path` against the same origin as `/mcp`, then POST the normal
+   complete-package multipart body: a `meta` JSON field plus one `.bin` file
+   field for every `meta.parts[]` entry. The field name and uploaded filename
+   must both equal the part name.
+3. Call `firmware.get_status`. An `uploaded` package remains private in the
+   staging directory and is not returned to devices.
+4. Review the returned board, version, SHA-256, size, and part count, then call
+   `firmware.publish` with the upload ID and `confirm=true`.
+
+For example, after saving the same metadata used by the existing package
+publisher as `package.json`:
+
+```bash
+curl -X POST "https://ota.example.com${UPLOAD_PATH}" \
+  -H "Authorization: Bearer ${UPLOAD_TOKEN}" \
+  -F "meta=<package.json" \
+  -F "bootloader.bin=@build/bootloader.bin;filename=bootloader.bin" \
+  -F "nrl-esp32.bin=@build/nrl-esp32.bin;filename=nrl-esp32.bin"
+```
+
+The session fixes the board, version, channel, and release notes before any
+bytes are accepted. Tokens are single-use, expire after 30 minutes by default,
+and are stored only as SHA-256 hashes. A failed or expired upload requires a new
+session. `firmware.archive` hides a release from devices, public history, and
+web-flash manifests without deleting its files; `firmware.restore` reverses it.
+Both operations and final publication require `confirm=true` and are audited.
 
 Firmware builds and the upload client remain in the separate
 [`NRL-ESP32`](https://github.com/hicaoc/NRL-ESP32) repository. To publish

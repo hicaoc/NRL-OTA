@@ -30,11 +30,12 @@ import (
 var validName = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$`)
 
 type server struct {
-	db                                                                              *sql.DB
-	firmwareDir, packagesDir, boardImagesDir, adminToken, deviceToken, publicPrefix string
-	adminUser, adminPassword                                                        string
-	sessionSecret                                                                   []byte
-	sessionTTL                                                                      time.Duration
+	db                                                           *sql.DB
+	firmwareDir, packagesDir, boardImagesDir, firmwareUploadsDir string
+	adminToken, deviceToken, publicPrefix                        string
+	adminUser, adminPassword                                     string
+	sessionSecret                                                []byte
+	sessionTTL                                                   time.Duration
 }
 
 // A flash package is one build's complete flash image set. The server stores it
@@ -94,6 +95,9 @@ func main() {
 	if err := os.MkdirAll(filepath.Join(dataDir, "board-images"), 0750); err != nil {
 		log.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(dataDir, "firmware-uploads"), 0750); err != nil {
+		log.Fatal(err)
+	}
 	db, err := sql.Open("sqlite", filepath.Join(dataDir, "ota.sqlite3"))
 	if err != nil {
 		log.Fatal(err)
@@ -106,6 +110,7 @@ func main() {
 	// Package releases live under /packages/, so store the URL explicitly. The
 	// ALTER fails harmlessly once the column exists.
 	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN url TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN archived_at INTEGER NOT NULL DEFAULT 0`)
 	adminUser := os.Getenv("OTA_ADMIN_USER")
 	if adminUser == "" {
 		adminUser = "admin"
@@ -115,17 +120,18 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		db:             db,
-		firmwareDir:    filepath.Join(dataDir, "firmware"),
-		packagesDir:    filepath.Join(dataDir, "packages"),
-		boardImagesDir: filepath.Join(dataDir, "board-images"),
-		publicPrefix:   publicPrefix,
-		adminToken:     admin,
-		deviceToken:    os.Getenv("OTA_DEVICE_TOKEN"),
-		adminUser:      adminUser,
-		adminPassword:  os.Getenv("OTA_ADMIN_PASSWORD"),
-		sessionSecret:  secret,
-		sessionTTL:     12 * time.Hour,
+		db:                 db,
+		firmwareDir:        filepath.Join(dataDir, "firmware"),
+		packagesDir:        filepath.Join(dataDir, "packages"),
+		boardImagesDir:     filepath.Join(dataDir, "board-images"),
+		firmwareUploadsDir: filepath.Join(dataDir, "firmware-uploads"),
+		publicPrefix:       publicPrefix,
+		adminToken:         admin,
+		deviceToken:        os.Getenv("OTA_DEVICE_TOKEN"),
+		adminUser:          adminUser,
+		adminPassword:      os.Getenv("OTA_ADMIN_PASSWORD"),
+		sessionSecret:      secret,
+		sessionTTL:         12 * time.Hour,
 	}
 	mux := http.NewServeMux()
 	s.routes(mux)
@@ -137,6 +143,7 @@ func (s *server) routes(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/admin/login", s.login)
 	m.HandleFunc("POST /api/v1/admin/releases", s.uploadRelease)
 	m.HandleFunc("POST /api/v1/admin/flash-package", s.uploadPackage)
+	m.HandleFunc("POST /api/v1/admin/firmware-uploads/{id}", s.uploadFirmwareSession)
 	m.HandleFunc("GET /api/v1/admin/devices", s.listDevices)
 	m.HandleFunc("GET /api/v1/admin/catalog", s.adminCatalog)
 	m.HandleFunc("GET /api/v1/admin/audit", s.listAudit)
@@ -349,7 +356,7 @@ func (s *server) listReleases(w http.ResponseWriter, r *http.Request) {
 // every channel (the public history); a specific channel filters to it (the
 // device update check).
 func (s *server) releases(board, channel string) ([]release, error) {
-	query := `SELECT version,channel,filename,sha256,size,notes,created_at,url FROM releases WHERE board_type=?`
+	query := `SELECT version,channel,filename,sha256,size,notes,created_at,url FROM releases WHERE board_type=? AND archived_at=0`
 	args := []any{board}
 	if channel != "" {
 		query += ` AND channel=?`

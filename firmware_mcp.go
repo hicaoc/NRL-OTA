@@ -166,7 +166,7 @@ func (s *server) registerFirmwareMCPTools(ms *mcp.Server) {
 		Title:       "Archive a firmware release",
 		Description: "Hide a firmware release from devices, public history, and generated web-flash manifests without deleting its files. Requires confirm=true.",
 	}, func(_ context.Context, _ *mcp.CallToolRequest, input mcpFirmwareReleaseActionInput) (*mcp.CallToolResult, mcpMutationOutput, error) {
-		output, err := s.setFirmwareArchived(input, true)
+		output, err := s.setFirmwareArchived(input, true, "mcp")
 		return nil, output, err
 	})
 
@@ -175,7 +175,7 @@ func (s *server) registerFirmwareMCPTools(ms *mcp.Server) {
 		Title:       "Restore an archived firmware release",
 		Description: "Make an archived firmware release visible to devices and public history again. Requires confirm=true.",
 	}, func(_ context.Context, _ *mcp.CallToolRequest, input mcpFirmwareReleaseActionInput) (*mcp.CallToolResult, mcpMutationOutput, error) {
-		output, err := s.setFirmwareArchived(input, false)
+		output, err := s.setFirmwareArchived(input, false, "mcp")
 		return nil, output, err
 	})
 }
@@ -668,7 +668,7 @@ func (s *server) managedReleases(input mcpFirmwareListInput) ([]managedRelease, 
 	return releases, rows.Err()
 }
 
-func (s *server) setFirmwareArchived(input mcpFirmwareReleaseActionInput, archived bool) (mcpMutationOutput, error) {
+func (s *server) setFirmwareArchived(input mcpFirmwareReleaseActionInput, archived bool, actor string) (mcpMutationOutput, error) {
 	input.Board = strings.TrimSpace(input.Board)
 	input.Version = strings.TrimSpace(input.Version)
 	input.Channel = strings.TrimSpace(input.Channel)
@@ -695,6 +695,6 @@ func (s *server) setFirmwareArchived(input mcpFirmwareReleaseActionInput, archiv
 		return mcpMutationOutput{}, errors.New("firmware release not found")
 	}
 	target := input.Board + "/" + input.Version + "/" + input.Channel
-	s.recordAudit("mcp", action, target, map[string]any{"status": status})
+	s.recordAudit(actor, action, target, map[string]any{"status": status})
 	return mcpMutationOutput{ID: target, Status: status, Message: "firmware release is " + status}, nil
 }

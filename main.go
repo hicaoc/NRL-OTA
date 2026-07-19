@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -142,6 +143,9 @@ func main() {
 func (s *server) routes(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/admin/login", s.login)
 	m.HandleFunc("POST /api/v1/admin/releases", s.uploadRelease)
+	m.HandleFunc("GET /api/v1/admin/releases", s.adminListReleases)
+	m.HandleFunc("POST /api/v1/admin/releases/archive", s.archiveRelease)
+	m.HandleFunc("POST /api/v1/admin/releases/restore", s.restoreRelease)
 	m.HandleFunc("POST /api/v1/admin/flash-package", s.uploadPackage)
 	m.HandleFunc("POST /api/v1/admin/firmware-uploads/{id}", s.uploadFirmwareSession)
 	m.HandleFunc("GET /api/v1/admin/devices", s.listDevices)
@@ -297,6 +301,35 @@ func (s *server) uploadRelease(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, release{Version: version, Channel: channel, URL: s.publicPath("/firmware/" + name), SHA256: sha, Size: size, Notes: notes, CreatedAt: now})
 }
 
+// clientIP returns the device IP as seen by the server. In production the Go
+// process sits behind a loopback reverse proxy (nginx/Caddy), so RemoteAddr
+// alone would always record 127.0.0.1. Proxy headers are spoofable, so they
+// are only trusted when the direct peer is a loopback address — the only
+// deployment topology the listen flag documents.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	peer, err := netip.ParseAddr(host)
+	if err != nil || !peer.IsLoopback() {
+		return host
+	}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if first, _, _ := strings.Cut(xff, ","); first != "" {
+			if addr, err := netip.ParseAddr(strings.TrimSpace(first)); err == nil {
+				return addr.String()
+			}
+		}
+	}
+	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
+		if addr, err := netip.ParseAddr(strings.TrimSpace(xrip)); err == nil {
+			return addr.String()
+		}
+	}
+	return host
+}
+
 func (s *server) checkDevice(w http.ResponseWriter, r *http.Request) {
 	if !s.device(w, r) {
 		return
@@ -312,7 +345,7 @@ func (s *server) checkDevice(w http.ResponseWriter, r *http.Request) {
 	if !json.Valid(d.Metadata) {
 		d.Metadata = []byte(`{}`)
 	}
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	host := clientIP(r)
 	now := time.Now().Unix()
 	_, err := s.db.Exec(`INSERT INTO devices(device_id,board_type,firmware_version,ip_address,metadata_json,first_seen,last_seen) VALUES(?,?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET board_type=excluded.board_type,firmware_version=excluded.firmware_version,ip_address=excluded.ip_address,metadata_json=excluded.metadata_json,last_seen=excluded.last_seen`, d.DeviceID, d.BoardType, d.FirmwareVersion, host, string(d.Metadata), now, now)
 	if err != nil {
@@ -350,6 +383,54 @@ func (s *server) listReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"releases": rows})
+}
+
+// adminListReleases returns every release for a board, including archived
+// ones, so the admin UI can offer archive/restore. The public endpoint hides
+// archived releases entirely.
+func (s *server) adminListReleases(w http.ResponseWriter, r *http.Request) {
+	if !s.admin(w, r) {
+		return
+	}
+	releases, err := s.managedReleases(mcpFirmwareListInput{
+		Board:           r.URL.Query().Get("board"),
+		Channel:         r.URL.Query().Get("channel"),
+		IncludeArchived: true,
+	})
+	if err != nil {
+		writeError(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"releases": releases})
+}
+
+func (s *server) archiveRelease(w http.ResponseWriter, r *http.Request) {
+	s.setReleaseArchived(w, r, true)
+}
+
+func (s *server) restoreRelease(w http.ResponseWriter, r *http.Request) {
+	s.setReleaseArchived(w, r, false)
+}
+
+// setReleaseArchived exposes the archive/restore mutation over HTTP. Archiving
+// hides the release from devices and the public history without deleting its
+// files. The web UI confirms with the user first, so Confirm is forced here.
+func (s *server) setReleaseArchived(w http.ResponseWriter, r *http.Request, archived bool) {
+	if !s.admin(w, r) {
+		return
+	}
+	var input mcpFirmwareReleaseActionInput
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&input); err != nil {
+		writeError(w, 400, "invalid request body")
+		return
+	}
+	input.Confirm = true
+	output, err := s.setFirmwareArchived(input, archived, "admin")
+	if err != nil {
+		writeError(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, output)
 }
 
 // releases returns a board's releases newest-first. An empty channel returns

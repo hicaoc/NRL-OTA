@@ -247,7 +247,7 @@ func TestFirmwareMCPStagesPublishesArchivesAndRestoresPackage(t *testing.T) {
 	}
 
 	action := mcpFirmwareReleaseActionInput{Board: "gezipai", Version: "9.9.9", Channel: "stable", Confirm: true}
-	if _, err = s.setFirmwareArchived(action, true); err != nil {
+	if _, err = s.setFirmwareArchived(action, true, "mcp"); err != nil {
 		t.Fatal(err)
 	}
 	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 0 {
@@ -257,7 +257,7 @@ func TestFirmwareMCPStagesPublishesArchivesAndRestoresPackage(t *testing.T) {
 	if err != nil || len(managed) != 1 || managed[0].ArchivedAt == 0 {
 		t.Fatalf("archived firmware missing from administrator list: releases=%#v err=%v", managed, err)
 	}
-	if _, err = s.setFirmwareArchived(action, false); err != nil {
+	if _, err = s.setFirmwareArchived(action, false, "mcp"); err != nil {
 		t.Fatal(err)
 	}
 	if releases, err := s.releases("gezipai", "stable"); err != nil || len(releases) != 1 {
@@ -420,6 +420,144 @@ func TestAIImportCreatesDraftThenAdminPublishesCustomBoard(t *testing.T) {
 	}
 	if len(events) < 2 || events[0].Target != "custom_radio" {
 		t.Fatalf("custom board audit trail missing: %#v", events)
+	}
+}
+
+func TestCheckDeviceRecordsRealClientIPBehindProxy(t *testing.T) {
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "devices.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = initDB(db); err != nil {
+		t.Fatal(err)
+	}
+	s := &server{db: db}
+	recordedIP := func() string {
+		t.Helper()
+		var ip string
+		if err := db.QueryRow(`SELECT ip_address FROM devices WHERE device_id='AA:BB:CC:DD:EE:FF'`).Scan(&ip); err != nil {
+			t.Fatal(err)
+		}
+		return ip
+	}
+	check := func(remoteAddr, xff string) {
+		t.Helper()
+		body := `{"device_id":"AA:BB:CC:DD:EE:FF","board_type":"gezipai","firmware_version":"0.6.0"}`
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/device/check", strings.NewReader(body))
+		request.RemoteAddr = remoteAddr
+		if xff != "" {
+			request.Header.Set("X-Forwarded-For", xff)
+		}
+		recorder := httptest.NewRecorder()
+		s.checkDevice(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("check status = %d, body = %s", recorder.Code, recorder.Body.String())
+		}
+	}
+
+	// Behind a loopback reverse proxy the forwarded header wins.
+	check("127.0.0.1:54321", "203.0.113.9, 10.0.0.1")
+	if ip := recordedIP(); ip != "203.0.113.9" {
+		t.Fatalf("proxied ip_address = %q, want 203.0.113.9", ip)
+	}
+
+	// A direct non-loopback peer can spoof the header, so it is ignored.
+	check("192.0.2.1:1234", "203.0.113.9")
+	if ip := recordedIP(); ip != "192.0.2.1" {
+		t.Fatalf("direct ip_address = %q, want 192.0.2.1", ip)
+	}
+
+	// A loopback peer without proxy headers (local development) keeps RemoteAddr.
+	check("[::1]:8080", "")
+	if ip := recordedIP(); ip != "::1" {
+		t.Fatalf("loopback ip_address = %q, want ::1", ip)
+	}
+}
+
+func TestAdminReleaseArchiveRestoreFlow(t *testing.T) {
+	dataDir := t.TempDir()
+	firmwareDir := filepath.Join(dataDir, "firmware")
+	if err := os.MkdirAll(firmwareDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(dataDir, "releases.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = initDB(db); err != nil {
+		t.Fatal(err)
+	}
+	name := "gezipai-1.0.0.bin"
+	if err = os.WriteFile(filepath.Join(firmwareDir, name), []byte("image"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(`INSERT INTO releases(board_type,version,channel,filename,sha256,size,notes,created_at,url) VALUES(?,?,?,?,?,?,?,?,?)`,
+		"gezipai", "1.0.0", "stable", name, "sha", 5, "notes", 1, "/firmware/"+name); err != nil {
+		t.Fatal(err)
+	}
+	s := &server{db: db, firmwareDir: firmwareDir, adminToken: "admin"}
+
+	countPublic := func() int {
+		t.Helper()
+		releases, err := s.releases("gezipai", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(releases)
+	}
+	act := func(path, token string) *httptest.ResponseRecorder {
+		t.Helper()
+		body := `{"board":"gezipai","version":"1.0.0","channel":"stable"}`
+		request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		if token != "" {
+			request.Header.Set("X-OTA-Token", token)
+		}
+		recorder := httptest.NewRecorder()
+		if strings.HasSuffix(path, "archive") {
+			s.archiveRelease(recorder, request)
+		} else {
+			s.restoreRelease(recorder, request)
+		}
+		return recorder
+	}
+
+	// Archiving requires admin authorization.
+	if recorder := act("/api/v1/admin/releases/archive", ""); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized archive status = %d, want 401", recorder.Code)
+	}
+	if countPublic() != 1 {
+		t.Fatal("unauthorized archive hid the release")
+	}
+
+	// Archive hides the release from devices and the public history.
+	if recorder := act("/api/v1/admin/releases/archive", "admin"); recorder.Code != http.StatusOK {
+		t.Fatalf("archive status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if countPublic() != 0 {
+		t.Fatal("archived release is still public")
+	}
+	managed, err := s.managedReleases(mcpFirmwareListInput{Board: "gezipai", IncludeArchived: true})
+	if err != nil || len(managed) != 1 || managed[0].ArchivedAt == 0 {
+		t.Fatalf("archived release missing from admin list: %#v err=%v", managed, err)
+	}
+
+	// Restore makes it visible again.
+	if recorder := act("/api/v1/admin/releases/restore", "admin"); recorder.Code != http.StatusOK {
+		t.Fatalf("restore status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if countPublic() != 1 {
+		t.Fatal("restored release is not public")
+	}
+
+	// The admin HTTP list endpoint includes archived rows.
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/admin/releases?board=gezipai", nil)
+	request.Header.Set("X-OTA-Token", "admin")
+	recorder := httptest.NewRecorder()
+	s.adminListReleases(recorder, request)
+	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), `"version":"1.0.0"`) {
+		t.Fatalf("admin list status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 }
 

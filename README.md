@@ -31,16 +31,24 @@ $env:OTA_DEVICE_TOKEN = 'optional-device-access-token'
 After changing the Vue frontend, run `vp build` and publish the resulting
 `frontend/dist` directory; rebuilding the Go executable is not required.
 
-To publish the Linux (`amd64`) API server from Windows PowerShell:
+To publish everything (Linux `amd64` API server plus the frontend) with one
+script:
 
-```powershell
+```bash
 cd NRL-OTA
-.\deploy.ps1 -DeployUser your-ssh-user
+bash deploy.sh                    # backend + frontend
+bash deploy.sh --backend-only     # API binary only
+bash deploy.sh --frontend-only    # static files only
 ```
 
-The script uploads to `/nrlota/nrl-ota`, retains `/nrlota/nrl-ota.previous`,
-then restarts `nrl-ota.service`. Override `-RemoteBinary` or `-Service` if the
-server uses different names. The Linux/macOS equivalent is `OTA_DEPLOY_USER=... bash deploy.sh`.
+The script cross-compiles the Go API, builds the Vue frontend, uploads both to
+`root@ota.nrlptt.com`, keeps the previous binary at `/nrlota/nrlota.previous`,
+restarts `nrlota.service` (rolling back on failure), and overlays
+`frontend/dist` onto `/nrlota/www` without deleting files that are not part of
+the bundle. Override the defaults with the `OTA_DEPLOY_USER`, `OTA_DEPLOY_HOST`,
+`OTA_SSH_KEY`, `OTA_BACKEND_BINARY`, `OTA_BACKEND_SERVICE`, and `OTA_DEPLOY_DIR`
+environment variables. On Windows PowerShell the backend-only equivalent is
+`.\deploy.ps1 -DeployUser root`.
 
 To publish the frontend as its own container:
 
@@ -61,7 +69,9 @@ files are served separately from `/nrlota/www`.
 Use `nginx.conf.example` for Nginx, or `Caddyfile.example` for Caddy. Both
 strip `/nrlota/api/` before proxying to Go.
 
-For the production host, publish the built frontend to `/nrlota/www/` with:
+For the production host, the root `deploy.sh` shown above already publishes the
+frontend as part of the one-shot flow. To publish only the frontend from
+`frontend/`:
 
 ```bash
 cd NRL-OTA/frontend

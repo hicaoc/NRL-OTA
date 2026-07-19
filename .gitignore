@@ -5,3 +5,4 @@ ota-data/
 nrl-ota.exe
 ota-server.exe
 *.exe~
+dist/nrl-ota-linux-amd64

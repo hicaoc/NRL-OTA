@@ -429,9 +429,27 @@ const messages = {
     statBoards: "板卡型号",
     statOutdated: "待升级",
     onlineHint: "5 分钟内有上报即视为在线",
-    status: "状态",
-    statusOnline: "在线",
-    statusOffline: "离线",
+    lastRefresh: "上次更新 {time}",
+    exportCSV: "导出 CSV",
+    sha256: "SHA256",
+    copy: "复制",
+    copied: "已复制",
+    copyLink: "复制链接",
+    loading: "加载中…",
+    themeToLight: "切换浅色",
+    themeToDark: "切换深色",
+    downloadLatest: "下载最新",
+    currentLatest: "当前最新：{version}",
+    versionRequired: "请填写版本号并选择固件文件",
+    publishConfirm: "确认发布 {board} 的 {version}（{channel}）？",
+    serialClear: "清空",
+    serialCopyLog: "复制日志",
+    archive: "下架",
+    restore: "恢复",
+    archived: "已归档",
+    actions: "操作",
+    archiveConfirm: "确认下架 {board} 的 {version}？下架后公开页面和设备都不再可见（文件保留，可随时恢复）。",
+    restoreConfirm: "确认恢复 {board} 的 {version} 为公开可见？",
     upToDate: "最新",
     updateAvailable: "可升级",
     deviceStatusHeading: "设备状态",
@@ -588,9 +606,28 @@ const messages = {
     statBoards: "Board models",
     statOutdated: "Need update",
     onlineHint: "Reported within the last 5 minutes counts as online",
-    status: "Status",
-    statusOnline: "Online",
-    statusOffline: "Offline",
+    lastRefresh: "Updated {time}",
+    exportCSV: "Export CSV",
+    sha256: "SHA256",
+    copy: "Copy",
+    copied: "Copied",
+    copyLink: "Copy link",
+    loading: "Loading…",
+    themeToLight: "Light theme",
+    themeToDark: "Dark theme",
+    downloadLatest: "Download latest",
+    currentLatest: "Current latest: {version}",
+    versionRequired: "Enter a version and choose a firmware file",
+    publishConfirm: "Publish {version} ({channel}) for {board}?",
+    serialClear: "Clear",
+    serialCopyLog: "Copy log",
+    archive: "Archive",
+    restore: "Restore",
+    archived: "Archived",
+    actions: "Actions",
+    archiveConfirm:
+      "Archive {version} for {board}? It disappears from the public page and devices (files are kept; restore anytime).",
+    restoreConfirm: "Restore {version} for {board} to public visibility?",
     upToDate: "Up to date",
     updateAvailable: "Update available",
     deviceStatusHeading: "Device status",
@@ -696,6 +733,22 @@ const app = createApp({
     const secureContext = window.isSecureContext;
     const webSerialAvailable = "serial" in navigator;
 
+    // Manual light/dark override. The dark "tech" theme is the default; the
+    // choice is persisted and applied to <html data-theme>, which all CSS
+    // theme rules key off. index.html applies it pre-paint to avoid a flash.
+    const theme = ref(localStorage.otaTheme === "light" ? "light" : "dark");
+    watch(
+      theme,
+      (value) => {
+        localStorage.otaTheme = value;
+        document.documentElement.dataset.theme = value;
+      },
+      { immediate: true },
+    );
+    const toggleTheme = () => {
+      theme.value = theme.value === "dark" ? "light" : "dark";
+    };
+
     // Serial debug terminal. Keep the log view and command entry as separate
     // DOM elements: ESP_LOG output can arrive at any time without moving or
     // corrupting what the user is currently typing.
@@ -785,10 +838,13 @@ const app = createApp({
       serialReadTask = null;
     }
 
-    async function sendSerialCommand() {
-      const command = serialInput.value;
-      if (!serialConnected.value || !serialPort.value || command.length === 0) return;
-      serialInput.value = "";
+    // Sent commands are kept for the session so ArrowUp/ArrowDown can walk
+    // back through them, like a real terminal.
+    const serialHistoryList = ref([]);
+    const serialHistoryIndex = ref(-1);
+
+    async function sendSerialText(command) {
+      if (!serialConnected.value || !serialPort.value || !command) return;
       appendSerialOutput(`${serialPrompt.value}${command}\r\n`);
       const writer = serialPort.value.writable.getWriter();
       try {
@@ -798,6 +854,27 @@ const app = createApp({
       } finally {
         writer.releaseLock();
       }
+    }
+
+    async function sendSerialCommand() {
+      const command = serialInput.value.trim();
+      if (!command) return;
+      serialInput.value = "";
+      if (serialHistoryList.value[serialHistoryList.value.length - 1] !== command)
+        serialHistoryList.value.push(command);
+      serialHistoryIndex.value = -1;
+      await sendSerialText(command);
+    }
+
+    function serialHistoryNav(direction) {
+      const list = serialHistoryList.value;
+      if (!list.length) return;
+      serialHistoryIndex.value =
+        direction < 0
+          ? Math.min(serialHistoryIndex.value + 1, list.length - 1)
+          : Math.max(serialHistoryIndex.value - 1, -1);
+      serialInput.value =
+        serialHistoryIndex.value === -1 ? "" : list[list.length - 1 - serialHistoryIndex.value];
     }
 
     function openSerialDebug(boardId) {
@@ -889,16 +966,24 @@ const app = createApp({
         serialBoard.value = catalogBoards.value[0]?.id || "";
     }
 
+    const historyLoading = ref(false);
     async function loadHistory() {
       loadError.value = "";
+      historyLoading.value = true;
       const next = {};
       try {
         await Promise.all(
           catalogBoards.value
             .filter((b) => (b.status || "published") === "published")
             .map(async (b) => {
+              // Administrators get the full list — including archived releases
+              // (marked with archived_at) — so the table can offer
+              // archive/restore actions.
               const response = await fetch(
-                apiURL(`/api/v1/releases?board=${encodeURIComponent(b.id)}`),
+                apiURL(
+                  `${authed.value ? "/api/v1/admin/releases" : "/api/v1/releases"}?board=${encodeURIComponent(b.id)}`,
+                ),
+                authed.value ? { headers: { "X-OTA-Token": session.value } } : undefined,
               );
               if (!response.ok) throw new Error(await requestError(response));
               next[b.id] = (await response.json()).releases || [];
@@ -907,15 +992,21 @@ const app = createApp({
         history.value = next;
       } catch (error) {
         loadError.value = t("loadFailed", { error: error.message });
+      } finally {
+        historyLoading.value = false;
       }
     }
 
+    // Updated whenever the device list is (re)fetched; shown in the toolbar so
+    // the 30-second auto-refresh is visible instead of happening silently.
+    const lastRefresh = ref(0);
     async function loadDevices() {
       const response = await fetch(apiURL("/api/v1/admin/devices"), {
         headers: { "X-OTA-Token": session.value },
       });
       if (!response.ok) throw new Error(await requestError(response));
       devices.value = (await response.json()).devices || [];
+      lastRefresh.value = Math.floor(Date.now() / 1000);
     }
 
     async function login() {
@@ -934,7 +1025,7 @@ const app = createApp({
         localStorage.otaUser = body.username;
         authed.value = true;
         password.value = "";
-        await Promise.all([loadDevices(), loadCatalog(true)]);
+        await Promise.all([loadDevices(), loadCatalog(true), loadHistory()]);
         setView("devices");
       } catch (error) {
         authed.value = false;
@@ -974,28 +1065,109 @@ const app = createApp({
       }
     }
 
-    async function upload() {
-      const file = firmware.value?.files?.[0];
-      if (!file) return;
-      publishMessage.value = t("publishing");
-      const response = await fetch(apiURL("/api/v1/admin/releases"), {
-        method: "POST",
-        headers: {
-          "X-OTA-Token": session.value,
-          "X-Firmware-Board": board.value,
-          "X-Firmware-Version": version.value,
-          "X-Firmware-Channel": channel.value,
-          "X-Release-Notes": encodeURIComponent(notes.value),
-        },
-        body: file,
+    // Clipboard helper with per-target "copied" feedback. keyed so several
+    // copy buttons on one page each show their own check mark.
+    const copiedKey = ref("");
+    let copiedTimer = null;
+    async function copyText(text, key) {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        return; // clipboard is unavailable on insecure origins
+      }
+      copiedKey.value = key;
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => (copiedKey.value = ""), 1500);
+    }
+    const absoluteURL = (path) => new URL(path, location.origin).href;
+
+    function exportCSV() {
+      const escape = (value) => {
+        const s = String(value ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const header = ["device_id", "board", "firmware", "callsign", "ssid", "ip", "last_seen"];
+      const lines = filteredRows.value.map((d) =>
+        [
+          d.device_id,
+          boardName(d.board_type),
+          d.firmware_version,
+          d.metadata?.nrl_callsign || "",
+          d.metadata?.nrl_ssid || "",
+          d.ip_address,
+          formatTime(d.last_seen),
+        ]
+          .map(escape)
+          .join(","),
+      );
+      // The BOM keeps Excel from misreading UTF-8 Chinese text.
+      const blob = new Blob([String.fromCharCode(0xfeff) + [header.join(","), ...lines].join("\n")], {
+        type: "text/csv;charset=utf-8",
       });
-      if (!response.ok) {
-        publishMessage.value = t("uploadFailed", { error: await requestError(response) });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `nrl-devices-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    // null = idle; 0–100 while the firmware is uploading.
+    const publishPercent = ref(null);
+    function upload() {
+      const file = firmware.value?.files?.[0];
+      if (!file || !version.value.trim()) {
+        publishMessage.value = t("versionRequired");
         return;
       }
-      const released = await response.json();
-      publishMessage.value = t("published", { version: released.version, size: released.size });
-      await Promise.all([loadHistory(), refreshDevices()]);
+      if (
+        !confirm(
+          t("publishConfirm", {
+            board: boardName(board.value),
+            version: version.value.trim(),
+            channel: channel.value,
+          }),
+        )
+      )
+        return;
+      // XHR (not fetch) so the multi-MB firmware upload reports real progress.
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", apiURL("/api/v1/admin/releases"));
+      xhr.setRequestHeader("X-OTA-Token", session.value);
+      xhr.setRequestHeader("X-Firmware-Board", board.value);
+      xhr.setRequestHeader("X-Firmware-Version", version.value.trim());
+      xhr.setRequestHeader("X-Firmware-Channel", channel.value);
+      xhr.setRequestHeader("X-Release-Notes", encodeURIComponent(notes.value));
+      publishPercent.value = 0;
+      publishMessage.value = "";
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable)
+          publishPercent.value = Math.round((event.loaded / event.total) * 100);
+      };
+      xhr.onload = async () => {
+        publishPercent.value = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const released = JSON.parse(xhr.responseText);
+          publishMessage.value = t("published", {
+            version: released.version,
+            size: released.size,
+          });
+          await Promise.all([loadHistory(), refreshDevices()]);
+          return;
+        }
+        let error = t("unknownError");
+        try {
+          error = JSON.parse(xhr.responseText).error || error;
+        } catch {
+          // The proxy may have returned a non-JSON error page.
+        }
+        publishMessage.value = t("uploadFailed", { error });
+      };
+      xhr.onerror = () => {
+        publishPercent.value = null;
+        publishMessage.value = t("uploadFailed", { error: t("unknownError") });
+      };
+      xhr.send(file);
     }
 
     function editBoard(entry) {
@@ -1293,6 +1465,31 @@ const app = createApp({
     }
     window.addEventListener("hashchange", syncFromHash);
 
+    // esp-web-tools (~370 KB) is only needed on the flash view; load it on
+    // first visit instead of at startup.
+    function ensureEspWebTools() {
+      if (document.querySelector("script[data-esp-web-tools]")) return;
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src = "/esp-web-tools/install-button.js";
+      script.dataset.espWebTools = "1";
+      document.head.appendChild(script);
+    }
+    watch(view, (value) => {
+      if (value === "flash") ensureEspWebTools();
+    });
+
+    // Auto-refresh the device list every 30 s while the dashboard is open.
+    let devicesTimer = null;
+    watch([view, authed], () => {
+      if (devicesTimer) {
+        clearInterval(devicesTimer);
+        devicesTimer = null;
+      }
+      if (view.value === "devices" && authed.value)
+        devicesTimer = setInterval(refreshDevices, 30000);
+    });
+
     // Device-management dashboard summary.
     const nowSeconds = () => Math.floor(Date.now() / 1000);
     const isOnline = (device) => nowSeconds() - device.last_seen < 300; // 5 min
@@ -1304,6 +1501,48 @@ const app = createApp({
       }
       return map;
     });
+
+    // Per-board quick actions.
+    const latestRelease = (id) => (history.value[id] || [])[0];
+    function scrollToBoard(id) {
+      document.getElementById(`board-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // The "latest" badge belongs to the newest non-archived release; the admin
+    // history includes archived rows, which must not claim it.
+    const isLatestActive = (boardId, release) => {
+      const first = (history.value[boardId] || []).find((x) => !x.archived_at);
+      return first === release;
+    };
+
+    async function setReleaseArchived(boardId, release, archived) {
+      if (
+        !confirm(
+          t(archived ? "archiveConfirm" : "restoreConfirm", {
+            board: boardName(boardId),
+            version: release.version,
+          }),
+        )
+      )
+        return;
+      const response = await fetch(
+        apiURL(`/api/v1/admin/releases/${archived ? "archive" : "restore"}`),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-OTA-Token": session.value },
+          body: JSON.stringify({
+            board: boardId,
+            version: release.version,
+            channel: release.channel,
+          }),
+        },
+      );
+      if (!response.ok) {
+        loadError.value = await requestError(response);
+        return;
+      }
+      await loadHistory();
+    }
     const deviceRows = computed(() =>
       devices.value.map((d) => {
         const latest = latestByBoard.value[d.board_type];
@@ -1400,6 +1639,8 @@ const app = createApp({
       language,
       view,
       setView,
+      theme,
+      toggleTheme,
       authed,
       sessionUser,
       username,
@@ -1419,6 +1660,17 @@ const app = createApp({
       pageTo,
       goPage,
       loadError,
+      copiedKey,
+      copyText,
+      absoluteURL,
+      historyLoading,
+      scrollToBoard,
+      latestRelease,
+      latestByBoard,
+      isLatestActive,
+      setReleaseArchived,
+      lastRefresh,
+      exportCSV,
       boardSearch,
       visibleBoards,
       publicBoards,
@@ -1437,6 +1689,8 @@ const app = createApp({
       connectSerial,
       disconnectSerial,
       sendSerialCommand,
+      sendSerialText,
+      serialHistoryNav,
       openSerialDebug,
       board,
       version,
@@ -1444,6 +1698,7 @@ const app = createApp({
       notes,
       firmware,
       publishMessage,
+      publishPercent,
       catalogBoards,
       catalogFeatures,
       boardEditor,
@@ -1483,18 +1738,19 @@ const app = createApp({
     <div class="app">
       <header class="navbar">
         <div class="nav-brand" @click="setView('home')">
-          <span class="nav-logo">◉</span><span class="nav-title">{{ t('brandName') }}</span>
+          <span class="nav-logo"><icon name="radio" /></span><span class="nav-title">{{ t('brandName') }}</span>
         </div>
         <nav class="nav-menu">
-          <button :class="{ active: view === 'home' }" @click="setView('home')">{{ t('navHome') }}</button>
-          <button :class="{ active: view === 'firmware' }" @click="setView('firmware')">{{ t('navFirmware') }}</button>
-          <button :class="{ active: view === 'flash' }" @click="setView('flash')">{{ t('navFlash') }}</button>
-          <button :class="{ active: view === 'serial' }" @click="setView('serial')">{{ t('navSerial') }}</button>
-          <button v-if="authed" :class="{ active: view === 'devices' }" @click="setView('devices')">{{ t('navDevices') }}</button>
-					<button v-if="authed" :class="{ active: view === 'boards' }" @click="setView('boards')">{{ t('navBoards') }}</button>
-          <button v-if="authed" :class="{ active: view === 'publish' }" @click="setView('publish')">{{ t('navPublish') }}</button>
+          <button :class="{ active: view === 'home' }" @click="setView('home')"><icon name="home" />{{ t('navHome') }}</button>
+          <button :class="{ active: view === 'firmware' }" @click="setView('firmware')"><icon name="download" />{{ t('navFirmware') }}</button>
+          <button :class="{ active: view === 'flash' }" @click="setView('flash')"><icon name="cpu" />{{ t('navFlash') }}</button>
+          <button :class="{ active: view === 'serial' }" @click="setView('serial')"><icon name="terminal" />{{ t('navSerial') }}</button>
+          <button v-if="authed" :class="{ active: view === 'devices' }" @click="setView('devices')"><icon name="server" />{{ t('navDevices') }}</button>
+					<button v-if="authed" :class="{ active: view === 'boards' }" @click="setView('boards')"><icon name="grid" />{{ t('navBoards') }}</button>
+          <button v-if="authed" :class="{ active: view === 'publish' }" @click="setView('publish')"><icon name="upload" />{{ t('navPublish') }}</button>
         </nav>
         <div class="nav-right">
+          <button class="icon-btn nav-theme" :title="theme === 'dark' ? t('themeToLight') : t('themeToDark')" :aria-label="theme === 'dark' ? t('themeToLight') : t('themeToDark')" @click="toggleTheme"><icon :name="theme === 'dark' ? 'sun' : 'moon'" /></button>
           <div class="language" :aria-label="t('language')">
             <button :class="{ active: language === 'zh' }" @click="setLanguage('zh')">中</button>
             <button :class="{ active: language === 'en' }" @click="setLanguage('en')">EN</button>
@@ -1503,16 +1759,16 @@ const app = createApp({
             <span class="user-chip"><span class="user-avatar">{{ sessionUser.slice(0, 1).toUpperCase() }}</span>{{ sessionUser }}</span>
             <button class="ghost" @click="logout">{{ t('logout') }}</button>
           </template>
-          <button v-else class="primary" @click="setView('login')">{{ t('adminLogin') }}</button>
+          <button v-else class="primary" @click="setView('login')"><icon name="user" />{{ t('adminLogin') }}</button>
         </div>
       </header>
 
       <main class="content">
         <!-- Home: board introductions -->
         <section v-if="view === 'home'" class="view">
-          <div class="view-head">
-            <h1>{{ t('title') }}</h1>
-            <p class="subtitle">{{ t('subtitle') }}</p>
+          <div class="hero">
+            <h1 class="hero-title">{{ t('title') }}</h1>
+            <p class="hero-sub">{{ t('subtitle') }}</p>
           </div>
 						<div class="catalog-home-toolbar">
 							<div><h2 class="section-h">{{ t('boardsHeading') }}</h2><span class="muted-sm">{{ t('boardCount', { count: visibleBoards.length }) }}</span></div>
@@ -1520,7 +1776,7 @@ const app = createApp({
 						</div>
           <div class="board-grid board-intro-grid">
 							<article v-for="b in visibleBoards" :key="b.id" class="board-card">
-              <img class="board-image" :src="b.image" :alt="b.name" />
+              <img class="board-image" :src="b.image" :alt="b.name" loading="lazy" />
               <div class="board-card-head">
                 <h3>{{ b.name }}</h3>
                 <span class="chip">{{ b.chip }}</span>
@@ -1530,6 +1786,10 @@ const app = createApp({
               <ul class="features">
                 <li v-for="feature in b.features" :key="feature">{{ feature }}</li>
               </ul>
+              <div class="card-actions">
+                <a v-if="latestRelease(b.id)" class="mini-btn" :href="latestRelease(b.id).url"><icon name="download" />{{ t('downloadLatest') }}</a>
+                <button v-if="b.flashable" class="mini-btn" @click="setView('flash')"><icon name="cpu" />{{ t('flashButton') }}</button>
+              </div>
               <code class="board-id">{{ b.id }}</code>
             </article>
           </div>
@@ -1565,21 +1825,32 @@ const app = createApp({
             <button class="ghost" @click="loadHistory">{{ t('refresh') }}</button>
           </div>
           <p v-if="loadError" class="error">{{ loadError }}</p>
-						<div v-for="b in publicBoards" :key="b.id" class="panel board-history">
+          <div v-if="publicBoards.length > 1" class="anchor-chips">
+            <a v-for="b in publicBoards" :key="b.id" href="#" @click.prevent="scrollToBoard(b.id)">{{ b.name }}</a>
+          </div>
+          <div v-if="historyLoading && !Object.keys(history).length" class="panel skeleton-panel" :aria-label="t('loading')">
+            <div class="sk-line" v-for="i in 4" :key="i"></div>
+          </div>
+					<div v-for="b in publicBoards" :key="b.id" class="panel board-history" :id="'board-' + b.id">
             <div class="board-history-head"><h3>{{ b.name }}</h3><code class="board-id">{{ b.id }}</code></div>
             <div class="table-scroll" v-if="(history[b.id] || []).length">
               <table>
                 <thead>
-                  <tr><th>{{ t('version') }}</th><th>{{ t('channel') }}</th><th>{{ t('size') }}</th><th class="notes-col">{{ t('notes') }}</th><th>{{ t('releasedAt') }}</th><th></th></tr>
+                  <tr><th>{{ t('version') }}</th><th>{{ t('channel') }}</th><th>{{ t('size') }}</th><th class="notes-col">{{ t('notes') }}</th><th>{{ t('releasedAt') }}</th><th>{{ t('sha256') }}</th><th></th><th v-if="authed">{{ t('actions') }}</th></tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(release, index) in history[b.id]" :key="release.version + release.channel">
-                    <td><strong>{{ release.version }}</strong> <span v-if="index === 0" class="badge latest">{{ t('latest') }}</span></td>
+                  <tr v-for="release in history[b.id]" :key="release.version + release.channel" :class="{ 'archived-row': release.archived_at }">
+                    <td><strong>{{ release.version }}</strong> <span v-if="isLatestActive(b.id, release)" class="badge latest">{{ t('latest') }}</span><span v-if="release.archived_at" class="badge archived">{{ t('archived') }}</span></td>
                     <td><span class="badge" :class="release.channel">{{ release.channel === 'stable' ? t('stable') : t('beta') }}</span></td>
                     <td>{{ formatSize(release.size) }}</td>
                     <td class="notes-col">{{ release.notes || t('noNotes') }}</td>
                     <td>{{ formatTime(release.created_at) }}</td>
-                    <td><a class="download" :href="release.url">{{ t('download') }}</a></td>
+                    <td class="sha-cell"><code class="mono" :title="release.sha256">{{ (release.sha256 || '').slice(0, 16) }}…</code><button class="icon-btn" :title="copiedKey === 'sha-' + release.url ? t('copied') : t('copy')" @click="copyText(release.sha256, 'sha-' + release.url)"><icon :name="copiedKey === 'sha-' + release.url ? 'check' : 'copy'" /></button></td>
+                    <td class="dl-cell"><a class="download" :href="release.url">{{ t('download') }}</a><button class="icon-btn" :title="copiedKey === 'link-' + release.url ? t('copied') : t('copyLink')" @click="copyText(absoluteURL(release.url), 'link-' + release.url)"><icon :name="copiedKey === 'link-' + release.url ? 'check' : 'copy'" /></button></td>
+                    <td v-if="authed" class="release-actions">
+                      <button v-if="!release.archived_at" class="mini-btn" @click="setReleaseArchived(b.id, release, true)">{{ t('archive') }}</button>
+                      <button v-else class="mini-btn" @click="setReleaseArchived(b.id, release, false)">{{ t('restore') }}</button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -1642,11 +1913,16 @@ const app = createApp({
             </div>
             <p v-if="!webSerialAvailable" class="unsupported">{{ t('serialUnsupported') }}</p>
             <p v-if="serialMessage" class="error">{{ serialMessage }}</p>
+            <div class="serial-actions">
+              <button class="mini-btn" :disabled="!serialConnected" @click="sendSerialText('AT')">AT</button>
+              <button class="mini-btn" :disabled="!serialOutput" @click="serialOutput = ''">{{ t('serialClear') }}</button>
+              <button class="mini-btn" :disabled="!serialOutput" @click="copyText(serialOutput, 'serialLog')"><icon :name="copiedKey === 'serialLog' ? 'check' : 'copy'" />{{ copiedKey === 'serialLog' ? t('copied') : t('serialCopyLog') }}</button>
+            </div>
             <div class="serial-terminal" @click="$refs.serialCommand?.focus()">
               <pre ref="serialOutputEl" class="serial-output">{{ serialOutput }}</pre>
               <form class="serial-command" @submit.prevent="sendSerialCommand">
                 <span class="serial-prompt">{{ serialPrompt }}</span>
-                <input ref="serialCommand" v-model="serialInput" :disabled="!serialConnected" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="AT command">
+                <input ref="serialCommand" v-model="serialInput" :disabled="!serialConnected" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="AT command" @keydown.up.prevent="serialHistoryNav(-1)" @keydown.down.prevent="serialHistoryNav(1)">
               </form>
             </div>
           </div>
@@ -1655,7 +1931,7 @@ const app = createApp({
         <!-- Admin login -->
         <section v-else-if="view === 'login'" class="view login-view">
           <div class="login-card">
-            <div class="login-logo">◉</div>
+            <div class="login-logo"><icon name="radio" /></div>
             <h2>{{ t('loginTitle') }}</h2>
             <p class="hint">{{ t('adminHint') }}</p>
             <label>{{ t('username') }}<input v-model="username" autocomplete="username" @keyup.enter="login"></label>
@@ -1689,16 +1965,19 @@ const app = createApp({
           <div class="panel table-panel">
             <div class="table-toolbar">
               <input class="search" v-model="search" type="search" :placeholder="t('searchPlaceholder')">
-              <span class="muted-sm">{{ t('onlineHint') }}</span>
+              <div class="toolbar-side">
+                <span class="muted-sm" v-if="lastRefresh">{{ t('lastRefresh', { time: formatTime(lastRefresh) }) }}</span>
+                <span class="muted-sm">{{ t('onlineHint') }}</span>
+                <button class="ghost" :disabled="!filteredRows.length" @click="exportCSV"><icon name="download" />{{ t('exportCSV') }}</button>
+              </div>
             </div>
             <div class="table-scroll sticky" v-if="filteredRows.length">
               <table>
                 <thead>
-                  <tr><th>{{ t('status') }}</th><th>{{ t('deviceId') }}</th><th>{{ t('board') }}</th><th>{{ t('firmware') }}</th><th>{{ t('callsign') }}</th><th>{{ t('ssid') }}</th><th>{{ t('ipAddress') }}</th><th>{{ t('lastSeen') }}</th></tr>
+                  <tr><th>{{ t('deviceId') }}</th><th>{{ t('board') }}</th><th>{{ t('firmware') }}</th><th>{{ t('callsign') }}</th><th>{{ t('ssid') }}</th><th>{{ t('ipAddress') }}</th><th>{{ t('lastSeen') }}</th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="d in pagedRows" :key="d.device_id">
-                    <td><span class="status"><span class="dot" :class="d.online ? 'on' : 'off'"></span>{{ d.online ? t('statusOnline') : t('statusOffline') }}</span></td>
                     <td class="mono">{{ d.device_id }}</td>
                     <td>{{ boardName(d.board_type) }}</td>
                     <td>{{ d.firmware_version }} <span v-if="d.outdated" class="badge beta">{{ t('updateAvailable') }}</span><span v-else-if="d.latest" class="badge stable">{{ t('upToDate') }}</span></td>
@@ -1812,11 +2091,15 @@ const app = createApp({
           <div class="panel">
             <div class="publish-grid">
 								<label>{{ t('boardType') }}<select v-model="board"><option v-for="b in uploadBoards" :key="b.id" :value="b.id">{{ b.name }}</option></select></label>
-              <label>{{ t('firmwareVersion') }}<input v-model="version" :placeholder="t('firmwareVersion')"></label>
+              <label>{{ t('firmwareVersion') }}<input v-model="version" :placeholder="t('firmwareVersion')"><span v-if="latestByBoard[board]" class="hint-sm">{{ t('currentLatest', { version: latestByBoard[board] }) }}</span></label>
               <label>{{ t('channel') }}<select v-model="channel"><option value="stable">{{ t('stable') }}</option><option value="beta">{{ t('beta') }}</option></select></label>
               <label>{{ t('firmwareFile') }}<input ref="firmware" type="file" accept=".bin"></label>
               <label class="wide">{{ t('releaseNotes') }}<textarea v-model="notes" :placeholder="t('releaseNotes')"></textarea></label>
-              <div class="actions wide"><button class="primary" @click="upload">{{ t('publish') }}</button><span class="message" aria-live="polite">{{ publishMessage }}</span></div>
+              <div class="actions wide">
+                <button class="primary" :disabled="publishPercent !== null" @click="upload">{{ t('publish') }}</button>
+                <div v-if="publishPercent !== null" class="progress"><div class="progress-track"><div class="progress-bar" :style="{ width: publishPercent + '%' }"></div></div><span class="muted-sm">{{ publishPercent }}%</span></div>
+                <span class="message" aria-live="polite">{{ publishMessage }}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -1826,17 +2109,35 @@ const app = createApp({
     </div>`,
 });
 
+// Inline stroke icons keep the UI dependency-free; usage: <icon name="home" />.
+const iconPaths = {
+  radio:
+    '<circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9"/><path d="M16.5 7.5a6.4 6.4 0 0 1 0 9"/><path d="M4.5 4.5a10.6 10.6 0 0 0 0 15"/><path d="M19.5 4.5a10.6 10.6 0 0 1 0 15"/>',
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/>',
+  cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>',
+  terminal: '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
+  server:
+    '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  upload: '<path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  check: '<path d="m4 12.5 5 5L20 6.5"/>',
+};
+app.component("icon", {
+  props: { name: { type: String, required: true } },
+  computed: {
+    path() {
+      return iconPaths[this.name] || "";
+    },
+  },
+  template: `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="path"></svg>`,
+});
+
 // <esp-web-install-button> is a custom element defined by esp-web-tools; tell the
 // Vue template compiler not to treat it as a Vue component.
 app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith("esp-web-");
 app.mount("#app");
-
-// Load the esp-web-tools web component at runtime (kept out of the Vite bundle so
-// its own relative chunk imports resolve against /esp-web-tools/).
-if (!document.querySelector("script[data-esp-web-tools]")) {
-  const script = document.createElement("script");
-  script.type = "module";
-  script.src = "/esp-web-tools/install-button.js";
-  script.dataset.espWebTools = "1";
-  document.head.appendChild(script);
-}

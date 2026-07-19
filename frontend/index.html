@@ -1,9 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#060b16" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='2' fill='%2360a5fa'/%3E%3Cpath d='M7.5 7.5a6.4 6.4 0 0 0 0 9'/%3E%3Cpath d='M16.5 7.5a6.4 6.4 0 0 1 0 9'/%3E%3Cpath d='M4.5 4.5a10.6 10.6 0 0 0 0 15'/%3E%3Cpath d='M19.5 4.5a10.6 10.6 0 0 1 0 15'/%3E%3C/svg%3E"
+    />
     <title>NRL OTA</title>
+    <script>
+      // Apply the saved theme before first paint so the default does not flash.
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.otaTheme === "light" ? "light" : "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
   </head>
   <body>
     <div id="app">Loading NRL OTA…</div>

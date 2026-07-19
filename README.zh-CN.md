@@ -7,7 +7,7 @@ Go 可执行文件提供 OTA API、动态板卡目录和 MCP 服务；请独立�
 Vite+（`vp`）使用 `PATH` 中的 `node` 运行，要求 **Node 24 或更高版本**（见 `frontend/.node-version`）。较低版本的 Node 运行 `vp` 启动器时会报 `ERR_UNKNOWN_FILE_EXTENSION`；请先切换至 Node 24，例如执行 `nvm use 24`。
 
 ```powershell
-cd ota-server/frontend
+cd NRL-OTA/frontend
 vp install --frozen-lockfile
 vp check
 vp build
@@ -25,7 +25,7 @@ $env:OTA_DEVICE_TOKEN = 'optional-device-access-token'
 在 Windows PowerShell 中发布 Linux（`amd64`）API 后端：
 
 ```powershell
-cd ota-server
+cd NRL-OTA
 .\deploy.ps1 -DeployUser your-ssh-user
 ```
 
@@ -36,7 +36,7 @@ cd ota-server
 也可将前端单独发布为容器：
 
 ```powershell
-cd ota-server/frontend
+cd NRL-OTA/frontend
 docker build -t nrl-ota-frontend .
 docker run -d --name nrl-ota-frontend -p 8081:80 nrl-ota-frontend
 ```
@@ -51,7 +51,7 @@ Nginx 可使用 `nginx.conf.example`，Caddy 可使用 `Caddyfile.example`；两
 生产环境可用以下命令将前端发布到 `ota.nrlptt.com` 的 `/nrlota/www/`：
 
 ```bash
-cd ota-server/frontend
+cd NRL-OTA/frontend
 OTA_DEPLOY_USER=your-ssh-user bash deploy.sh
 ```
 
@@ -61,7 +61,7 @@ OTA_DEPLOY_USER=your-ssh-user bash deploy.sh
 Windows PowerShell 请使用原生 OpenSSH 发布脚本：
 
 ```powershell
-cd ota-server\frontend
+cd NRL-OTA\frontend
 .\deploy.ps1 -DeployUser your-ssh-user
 ```
 
@@ -94,7 +94,8 @@ cd ota-server\frontend
 
 AI 提交默认保存为草稿。公开发布被设计成独立操作，并要求板卡已具备双语名称、图片和至少一个功能配置。管理页面还提供“AI / JSON 导入”，可一次导入板卡资料、功能定义和功能状态；图片继续走独立校验接口。远程公网部署应在 HTTPS 反向代理后使用，并为 MCP 配置专用的短期管理员会话；长期机器令牌更适合受控自动化环境。
 
-要在原生固件构建成功后自动发布，请在构建环境中设置以下变量（只有同时设置前两个变量才会执行上传）：
+固件构建与上传客户端继续保留在独立的
+[`NRL-ESP32`](https://github.com/hicaoc/NRL-ESP32) 仓库。要在原生固件构建成功后自动发布，请在 `NRL-ESP32` 工作区设置以下变量（只有同时设置前两个变量才会执行上传）：
 
 ```powershell
 $env:OTA_SERVER_URL = 'https://ota.example.com'
@@ -106,7 +107,7 @@ python scripts/build.py s31_korvo build
 
 要用一条命令发布四种板卡的完整刷机包及 OTA 版本，请运行 `python scripts/publish_ota.py`。如只需发布部分板卡，可在命令后指定一个或多个板卡标识。脚本会从各构建目录的 `flasher_args.json` 读取全部镜像及其烧录地址，不再需要单独上传应用固件。
 
-API 容器请在 `ota-server/` 目录中构建，持久化挂载 `/data`，并设置两个令牌环境变量。前端容器或构建产物需独立发布；项目提供的 `Caddyfile.example` 会终止 TLS、提供 `/nrlota/www` 下的前端静态文件并将 API 请求反向代理到 API 端口。
+API 容器请在 `NRL-OTA` 仓库根目录构建，持久化挂载 `/data`，并设置两个令牌环境变量。前端容器或构建产物需独立发布；项目提供的 `Caddyfile.example` 会终止 TLS、提供 `/nrlota/www` 下的前端静态文件并将 API 请求反向代理到 API 端口。
 
 ## USB 网页烧录器
 

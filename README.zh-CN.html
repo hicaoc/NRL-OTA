@@ -22,7 +22,7 @@
     <p>可执行文件会内嵌 <code>frontend/dist</code>，因此部署时只需要一个 Go 二进制文件及其数据目录。以下四种板卡共用同一套 API：<code>gezipai</code>、<code>bh4tdv</code>、<code>s31_korvo</code> 和 <code>s31_function_coreboard</code>。</p>
     <p>先构建一次内嵌的 Vue 管理站点，再构建 Go 服务：</p>
     <p>Vite+（<code>vp</code>）使用 <code>PATH</code> 中的 <code>node</code> 运行，要求 <strong>Node 24 或更高版本</strong>（见 <code>frontend/.node-version</code>）。较低版本的 Node 运行 <code>vp</code> 启动器时会报 <code>ERR_UNKNOWN_FILE_EXTENSION</code>；请先切换至 Node 24，例如执行 <code>nvm use 24</code>。</p>
-    <pre><code class="language-powershell">cd ota-server/frontend
+    <pre><code class="language-powershell">cd NRL-OTA/frontend
 vp install --frozen-lockfile
 vp check
 vp build
@@ -45,7 +45,7 @@ $env:OTA_VERSION = '0.5.2'       # 可选；默认从 nrl_version.h 读取
 $env:OTA_RELEASE_NOTES = '修复说明'
 python scripts/build.py s31_korvo build</code></pre>
     <p>要用一条命令发布四种板卡的完整刷机包及 OTA 版本，请运行 <code>python scripts/publish_ota.py</code>。如只需发布部分板卡，可在命令后指定一个或多个板卡标识。脚本会从各构建目录的 <code>flasher_args.json</code> 读取全部镜像及其烧录地址，不再需要单独上传应用固件。</p>
-    <p>容器化部署时，请在 <code>ota-server/</code> 目录中构建镜像，持久化挂载 <code>/data</code>，并设置两个令牌环境变量。项目提供的 <code>Caddyfile.example</code> 会终止 TLS 并将流量反向代理到容器本地端口。</p>
+    <p>容器化部署时，请在 <code>NRL-OTA</code> 仓库根目录构建镜像，持久化挂载 <code>/data</code>，并设置两个令牌环境变量。项目提供的 <code>Caddyfile.example</code> 会终止 TLS 并将流量反向代理到容器本地端口。</p>
     <h2>USB 网页烧录器</h2>
     <p>网站内置浏览器 USB 烧录器（esp-web-tools / Web Serial），可用于首次进行全量烧录。它只支持通过 HTTPS（或 localhost）访问的 Chrome/Edge，并且 <strong>仅支持两种 ESP32-S3 板卡</strong>：<code>gezipai</code> 与 <code>bh4tdv</code>。由于 esptool-js 不支持 ESP32-S31，<code>s31_korvo</code> 和 <code>s31_function_coreboard</code> 只能使用串口烧录，页面会给出相应提示。</p>
     <p>esp-web-tools 资源会内嵌进二进制文件。完整刷机包按版本存储在 <code>&lt;data-dir&gt;/packages/&lt;board&gt;/&lt;version&gt;/</code>，服务器会动态生成各板卡的 <code>manifest-&lt;board&gt;.json</code>，因此发布新的可烧录固件时无需重新构建 Go 二进制文件。</p>

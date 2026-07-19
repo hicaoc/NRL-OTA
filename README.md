@@ -15,7 +15,7 @@ Vite+ (`vp`) runs under whatever `node` is on `PATH`; it needs **Node 24+**
 `nvm use 24`).
 
 ```powershell
-cd ota-server/frontend
+cd NRL-OTA/frontend
 vp install --frozen-lockfile
 vp check
 vp build
@@ -34,7 +34,7 @@ After changing the Vue frontend, run `vp build` and publish the resulting
 To publish the Linux (`amd64`) API server from Windows PowerShell:
 
 ```powershell
-cd ota-server
+cd NRL-OTA
 .\deploy.ps1 -DeployUser your-ssh-user
 ```
 
@@ -45,7 +45,7 @@ server uses different names. The Linux/macOS equivalent is `OTA_DEPLOY_USER=... 
 To publish the frontend as its own container:
 
 ```powershell
-cd ota-server/frontend
+cd NRL-OTA/frontend
 docker build -t nrl-ota-frontend .
 docker run -d --name nrl-ota-frontend -p 8081:80 nrl-ota-frontend
 ```
@@ -64,7 +64,7 @@ strip `/nrlota/api/` before proxying to Go.
 For the production host, publish the built frontend to `/nrlota/www/` with:
 
 ```bash
-cd ota-server/frontend
+cd NRL-OTA/frontend
 OTA_DEPLOY_USER=your-ssh-user bash deploy.sh
 ```
 
@@ -75,7 +75,7 @@ requires the target directory to already exist on `ota.nrlptt.com`.
 On Windows PowerShell, use the native OpenSSH deployment script instead:
 
 ```powershell
-cd ota-server\frontend
+cd NRL-OTA\frontend
 .\deploy.ps1 -DeployUser your-ssh-user
 ```
 
@@ -123,8 +123,10 @@ Expose MCP only behind HTTPS and prefer short-lived administrator sessions for
 interactive remote clients; the long-lived machine token is intended for
 controlled automation.
 
-To publish automatically after a successful native firmware build, set these in
-the build environment (the upload is deliberately disabled unless both values
+Firmware builds and the upload client remain in the separate
+[`NRL-ESP32`](https://github.com/hicaoc/NRL-ESP32) repository. To publish
+automatically after a successful native firmware build, run the following from
+an `NRL-ESP32` checkout (the upload is deliberately disabled unless both values
 exist):
 
 ```powershell
@@ -141,7 +143,7 @@ identifiers to publish only those boards. The script reads every image and its
 flash offset from each build's `flasher_args.json`; a separate app-only upload
 is not needed.
 
-For the API container, build from `ota-server/`, mount `/data` persistently,
+For the API container, build from the `NRL-OTA` repository root, mount `/data` persistently,
 and set the two token environment variables. Deploy the frontend container (or
 the built `frontend/dist`) separately. The included `Caddyfile.example`
 terminates TLS, serves `/nrlota/www`, and proxies API requests to the API port.

@@ -561,6 +561,102 @@ func TestAdminReleaseArchiveRestoreFlow(t *testing.T) {
 	}
 }
 
+func TestAdminReleaseDeleteFlow(t *testing.T) {
+	dataDir := t.TempDir()
+	firmwareDir := filepath.Join(dataDir, "firmware")
+	packagesDir := filepath.Join(dataDir, "packages")
+	if err := os.MkdirAll(firmwareDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(dataDir, "releases.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = initDB(db); err != nil {
+		t.Fatal(err)
+	}
+	s := &server{db: db, firmwareDir: firmwareDir, packagesDir: packagesDir, adminToken: "admin"}
+
+	act := func(body, token string) *httptest.ResponseRecorder {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/releases/delete", strings.NewReader(body))
+		if token != "" {
+			request.Header.Set("X-OTA-Token", token)
+		}
+		recorder := httptest.NewRecorder()
+		s.deleteRelease(recorder, request)
+		return recorder
+	}
+
+	// Legacy flat-file release: the row and the .bin file both go away.
+	name := "gezipai-1.0.0.bin"
+	if err = os.WriteFile(filepath.Join(firmwareDir, name), []byte("image"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(`INSERT INTO releases(board_type,version,channel,filename,sha256,size,notes,created_at,url) VALUES(?,?,?,?,?,?,?,?,?)`,
+		"gezipai", "1.0.0", "stable", name, "sha", 5, "notes", 1, "/firmware/"+name); err != nil {
+		t.Fatal(err)
+	}
+	legacyBody := `{"board":"gezipai","version":"1.0.0","channel":"stable"}`
+
+	if recorder := act(legacyBody, ""); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized delete status = %d, want 401", recorder.Code)
+	}
+	if count := countReleases(t, db, "gezipai", "1.0.0"); count != 1 {
+		t.Fatal("unauthorized delete removed the release")
+	}
+	if recorder := act(legacyBody, "admin"); recorder.Code != http.StatusOK {
+		t.Fatalf("delete status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if count := countReleases(t, db, "gezipai", "1.0.0"); count != 0 {
+		t.Fatal("deleted release is still in the database")
+	}
+	if _, err = os.Stat(filepath.Join(firmwareDir, name)); !os.IsNotExist(err) {
+		t.Fatalf("deleted release file still exists: err=%v", err)
+	}
+	if recorder := act(legacyBody, "admin"); recorder.Code != http.StatusBadRequest {
+		t.Fatalf("repeated delete status = %d, want 400", recorder.Code)
+	}
+
+	// Package releases share packages/<board>/<version>/ across channels: the
+	// directory survives until the last channel is deleted.
+	pkgDir := filepath.Join(packagesDir, "gezipai", "2.0.0")
+	if err = os.MkdirAll(pkgDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(pkgDir, "app.bin"), []byte("image"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	for _, channel := range []string{"stable", "beta"} {
+		if _, err = db.Exec(`INSERT INTO releases(board_type,version,channel,filename,sha256,size,notes,created_at,url) VALUES(?,?,?,?,?,?,?,?,?)`,
+			"gezipai", "2.0.0", channel, "gezipai/2.0.0/app.bin", "sha", 5, "notes", 1, "/packages/gezipai/2.0.0/app.bin"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if recorder := act(`{"board":"gezipai","version":"2.0.0","channel":"stable"}`, "admin"); recorder.Code != http.StatusOK {
+		t.Fatalf("package delete status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if _, err = os.Stat(pkgDir); err != nil {
+		t.Fatal("package directory removed while the beta channel still references it")
+	}
+	if recorder := act(`{"board":"gezipai","version":"2.0.0","channel":"beta"}`, "admin"); recorder.Code != http.StatusOK {
+		t.Fatalf("package delete status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if _, err = os.Stat(pkgDir); !os.IsNotExist(err) {
+		t.Fatalf("package directory still exists after the last channel was deleted: err=%v", err)
+	}
+}
+
+func countReleases(t *testing.T, db *sql.DB, board, version string) int {
+	t.Helper()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM releases WHERE board_type=? AND version=?`, board, version).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
 func packageRequest(t *testing.T, meta packageMeta, files map[string][]byte) *http.Request {
 	t.Helper()
 	var body bytes.Buffer

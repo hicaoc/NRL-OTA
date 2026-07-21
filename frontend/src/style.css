@@ -343,6 +343,15 @@ button.block {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.mini-btn.danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+.mini-btn.danger:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: #ffffff;
+}
 
 /* Board cards */
 .board-grid {
@@ -445,9 +454,35 @@ button.block {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+.card-actions .mini-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.88rem;
+}
+.card-actions a.mini-btn {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+}
+.card-actions a.mini-btn:hover {
+  color: var(--brand-ink);
+  filter: brightness(1.08);
+}
+.card-actions button.mini-btn {
+  background: var(--chip-bg);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.card-actions button.mini-btn:hover {
+  background: var(--brand);
+  color: var(--brand-ink);
 }
 .board-id {
-  margin-top: auto;
   font-size: 0.75rem;
   color: var(--muted);
   background: var(--code-bg);

@@ -698,3 +698,55 @@ func (s *server) setFirmwareArchived(input mcpFirmwareReleaseActionInput, archiv
 	s.recordAudit(actor, action, target, map[string]any{"status": status})
 	return mcpMutationOutput{ID: target, Status: status, Message: "firmware release is " + status}, nil
 }
+
+// deleteFirmwareRelease permanently removes a release: the database row goes
+// away and its files are deleted from disk. Unlike archiving this cannot be
+// undone. A package directory is shared by every channel of the same
+// board/version, so it is removed only once no other release references it.
+func (s *server) deleteFirmwareRelease(input mcpFirmwareReleaseActionInput, actor string) (mcpMutationOutput, error) {
+	input.Board = strings.TrimSpace(input.Board)
+	input.Version = strings.TrimSpace(input.Version)
+	input.Channel = strings.TrimSpace(input.Channel)
+	if input.Channel == "" {
+		input.Channel = "stable"
+	}
+	if !input.Confirm {
+		return mcpMutationOutput{}, errors.New("confirm must be true")
+	}
+	if !validName.MatchString(input.Board) || !validName.MatchString(input.Version) || (input.Channel != "stable" && input.Channel != "beta") {
+		return mcpMutationOutput{}, errors.New("invalid board, version or channel")
+	}
+	var filename, storedURL string
+	err := s.db.QueryRow(`SELECT filename,url FROM releases WHERE board_type=? AND version=? AND channel=?`,
+		input.Board, input.Version, input.Channel).Scan(&filename, &storedURL)
+	if err == sql.ErrNoRows {
+		return mcpMutationOutput{}, errors.New("firmware release not found")
+	}
+	if err != nil {
+		return mcpMutationOutput{}, err
+	}
+	result, err := s.db.Exec(`DELETE FROM releases WHERE board_type=? AND version=? AND channel=?`, input.Board, input.Version, input.Channel)
+	if err != nil {
+		return mcpMutationOutput{}, err
+	}
+	if affected, _ := result.RowsAffected(); affected != 1 {
+		return mcpMutationOutput{}, errors.New("firmware release not found")
+	}
+
+	if strings.HasPrefix(storedURL, "/packages/") {
+		var remaining int
+		if err = s.db.QueryRow(`SELECT COUNT(*) FROM releases WHERE board_type=? AND version=?`, input.Board, input.Version).Scan(&remaining); err != nil {
+			return mcpMutationOutput{}, err
+		}
+		if remaining == 0 {
+			_ = os.RemoveAll(s.packageDir(input.Board, input.Version))
+		}
+	} else {
+		// Legacy rows predate the url column and store flat files under firmware/.
+		_ = os.Remove(filepath.Join(s.firmwareDir, filepath.Base(filename)))
+	}
+
+	target := input.Board + "/" + input.Version + "/" + input.Channel
+	s.recordAudit(actor, "firmware.delete", target, map[string]any{"status": "deleted"})
+	return mcpMutationOutput{ID: target, Status: "deleted", Message: "firmware release is deleted"}, nil
+}

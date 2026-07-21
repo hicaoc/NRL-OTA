@@ -146,6 +146,7 @@ func (s *server) routes(m *http.ServeMux) {
 	m.HandleFunc("GET /api/v1/admin/releases", s.adminListReleases)
 	m.HandleFunc("POST /api/v1/admin/releases/archive", s.archiveRelease)
 	m.HandleFunc("POST /api/v1/admin/releases/restore", s.restoreRelease)
+	m.HandleFunc("POST /api/v1/admin/releases/delete", s.deleteRelease)
 	m.HandleFunc("POST /api/v1/admin/flash-package", s.uploadPackage)
 	m.HandleFunc("POST /api/v1/admin/firmware-uploads/{id}", s.uploadFirmwareSession)
 	m.HandleFunc("GET /api/v1/admin/devices", s.listDevices)
@@ -426,6 +427,26 @@ func (s *server) setReleaseArchived(w http.ResponseWriter, r *http.Request, arch
 	}
 	input.Confirm = true
 	output, err := s.setFirmwareArchived(input, archived, "admin")
+	if err != nil {
+		writeError(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, output)
+}
+
+// deleteRelease permanently removes a release row and its files. The web UI
+// confirms with the user first, so Confirm is forced here.
+func (s *server) deleteRelease(w http.ResponseWriter, r *http.Request) {
+	if !s.admin(w, r) {
+		return
+	}
+	var input mcpFirmwareReleaseActionInput
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&input); err != nil {
+		writeError(w, 400, "invalid request body")
+		return
+	}
+	input.Confirm = true
+	output, err := s.deleteFirmwareRelease(input, "admin")
 	if err != nil {
 		writeError(w, 400, err.Error())
 		return

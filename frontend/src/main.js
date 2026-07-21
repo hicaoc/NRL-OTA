@@ -450,6 +450,8 @@ const messages = {
     actions: "操作",
     archiveConfirm: "确认下架 {board} 的 {version}？下架后公开页面和设备都不再可见（文件保留，可随时恢复）。",
     restoreConfirm: "确认恢复 {board} 的 {version} 为公开可见？",
+    deleteRelease: "彻底删除",
+    deleteConfirm: "确认彻底删除 {board} 的 {version}（{channel}）？数据库记录和固件文件都会被删除，无法恢复！",
     upToDate: "最新",
     updateAvailable: "可升级",
     deviceStatusHeading: "设备状态",
@@ -628,6 +630,9 @@ const messages = {
     archiveConfirm:
       "Archive {version} for {board}? It disappears from the public page and devices (files are kept; restore anytime).",
     restoreConfirm: "Restore {version} for {board} to public visibility?",
+    deleteRelease: "Delete",
+    deleteConfirm:
+      "Permanently delete {version} ({channel}) for {board}? The database record and firmware files are removed and cannot be recovered!",
     upToDate: "Up to date",
     updateAvailable: "Update available",
     deviceStatusHeading: "Device status",
@@ -1543,6 +1548,33 @@ const app = createApp({
       }
       await loadHistory();
     }
+
+    async function deleteRelease(boardId, release) {
+      if (
+        !confirm(
+          t("deleteConfirm", {
+            board: boardName(boardId),
+            version: release.version,
+            channel: release.channel,
+          }),
+        )
+      )
+        return;
+      const response = await fetch(apiURL("/api/v1/admin/releases/delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-OTA-Token": session.value },
+        body: JSON.stringify({
+          board: boardId,
+          version: release.version,
+          channel: release.channel,
+        }),
+      });
+      if (!response.ok) {
+        loadError.value = await requestError(response);
+        return;
+      }
+      await loadHistory();
+    }
     const deviceRows = computed(() =>
       devices.value.map((d) => {
         const latest = latestByBoard.value[d.board_type];
@@ -1669,6 +1701,7 @@ const app = createApp({
       latestByBoard,
       isLatestActive,
       setReleaseArchived,
+      deleteRelease,
       lastRefresh,
       exportCSV,
       boardSearch,
@@ -1850,6 +1883,7 @@ const app = createApp({
                     <td v-if="authed" class="release-actions">
                       <button v-if="!release.archived_at" class="mini-btn" @click="setReleaseArchived(b.id, release, true)">{{ t('archive') }}</button>
                       <button v-else class="mini-btn" @click="setReleaseArchived(b.id, release, false)">{{ t('restore') }}</button>
+                      <button class="mini-btn danger" @click="deleteRelease(b.id, release)">{{ t('deleteRelease') }}</button>
                     </td>
                   </tr>
                 </tbody>

@@ -150,6 +150,7 @@ func (s *server) routes(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/admin/flash-package", s.uploadPackage)
 	m.HandleFunc("POST /api/v1/admin/firmware-uploads/{id}", s.uploadFirmwareSession)
 	m.HandleFunc("GET /api/v1/admin/devices", s.listDevices)
+	m.HandleFunc("POST /api/v1/admin/devices/delete", s.deleteDevice)
 	m.HandleFunc("GET /api/v1/admin/catalog", s.adminCatalog)
 	m.HandleFunc("GET /api/v1/admin/audit", s.listAudit)
 	m.HandleFunc("POST /api/v1/admin/boards", s.createBoard)
@@ -520,6 +521,31 @@ func (s *server) listDevices(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{"devices": out})
 }
+
+func (s *server) deleteDevice(w http.ResponseWriter, r *http.Request) {
+	if !s.admin(w, r) {
+		return
+	}
+	var req struct {
+		DeviceID string `json:"device_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.DeviceID == "" {
+		writeError(w, 400, "device_id required")
+		return
+	}
+	res, err := s.db.Exec(`DELETE FROM devices WHERE device_id = ?`, req.DeviceID)
+	if err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		writeError(w, 404, "device not found")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
 func (s *server) serveFirmware(w http.ResponseWriter, r *http.Request) {
 	name := filepath.Base(r.URL.Path)
 	if !strings.HasSuffix(name, ".bin") || strings.Contains(name, "..") {

@@ -450,8 +450,8 @@ const messages = {
     actions: "操作",
     archiveConfirm: "确认下架 {board} 的 {version}？下架后公开页面和设备都不再可见（文件保留，可随时恢复）。",
     restoreConfirm: "确认恢复 {board} 的 {version} 为公开可见？",
-    deleteRelease: "彻底删除",
-    deleteConfirm: "确认彻底删除 {board} 的 {version}（{channel}）？数据库记录和固件文件都会被删除，无法恢复！",
+    deleteRelease: "删除",
+    deleteConfirm: "确认删除 {board} 的 {version}（{channel}）？数据库记录和固件文件都会被删除，无法恢复！",
     upToDate: "最新",
     updateAvailable: "可升级",
     deviceStatusHeading: "设备状态",
@@ -471,6 +471,8 @@ const messages = {
     ssid: "SSID",
     ipAddress: "IP 地址",
     lastSeen: "最后在线",
+    deleteDevice: "删除",
+    deleteDeviceConfirm: "确认删除设备 {id}？删除后该设备记录将不可恢复！",
     publishHeading: "发布固件",
     boardType: "板卡类型",
     firmwareVersion: "版本",
@@ -652,6 +654,8 @@ const messages = {
     ssid: "SSID",
     ipAddress: "IP address",
     lastSeen: "Last seen",
+    deleteDevice: "Delete",
+    deleteDeviceConfirm: "Delete device {id}? This record will be permanently removed!",
     publishHeading: "Publish firmware",
     boardType: "Board type",
     firmwareVersion: "Version",
@@ -1575,6 +1579,21 @@ const app = createApp({
       }
       await loadHistory();
     }
+
+    async function deleteDevice(deviceId) {
+      if (!confirm(t("deleteDeviceConfirm", { id: deviceId }))) return;
+      const response = await fetch(apiURL("/api/v1/admin/devices/delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-OTA-Token": session.value },
+        body: JSON.stringify({ device_id: deviceId }),
+      });
+      if (!response.ok) {
+        loginError.value = await requestError(response);
+        return;
+      }
+      await loadDevices();
+    }
+
     const deviceRows = computed(() =>
       devices.value.map((d) => {
         const latest = latestByBoard.value[d.board_type];
@@ -1702,6 +1721,7 @@ const app = createApp({
       isLatestActive,
       setReleaseArchived,
       deleteRelease,
+      deleteDevice,
       lastRefresh,
       exportCSV,
       boardSearch,
@@ -2008,7 +2028,7 @@ const app = createApp({
             <div class="table-scroll sticky" v-if="filteredRows.length">
               <table>
                 <thead>
-                  <tr><th>{{ t('deviceId') }}</th><th>{{ t('board') }}</th><th>{{ t('firmware') }}</th><th>{{ t('callsign') }}</th><th>{{ t('ssid') }}</th><th>{{ t('ipAddress') }}</th><th>{{ t('lastSeen') }}</th></tr>
+                  <tr><th>{{ t('deviceId') }}</th><th>{{ t('board') }}</th><th>{{ t('firmware') }}</th><th>{{ t('callsign') }}</th><th>{{ t('ssid') }}</th><th>{{ t('ipAddress') }}</th><th>{{ t('lastSeen') }}</th><th>{{ t('actions') }}</th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="d in pagedRows" :key="d.device_id">
@@ -2019,6 +2039,7 @@ const app = createApp({
                     <td>{{ d.metadata?.nrl_ssid ?? '-' }}</td>
                     <td class="mono">{{ d.ip_address }}</td>
                     <td>{{ formatTime(d.last_seen) }}</td>
+                    <td><button class="mini-btn danger" @click="deleteDevice(d.device_id)">{{ t('deleteDevice') }}</button></td>
                   </tr>
                 </tbody>
               </table>

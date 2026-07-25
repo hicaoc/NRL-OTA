@@ -9,349 +9,7 @@ import "./style.css";
 // served separately by the web server.
 const apiURL = (path) => path;
 
-// Board catalog for the public "功能介绍" section. Kept here (not in the DB) so
-// the marketing copy ships with the frontend and stays bilingual. Order defines
-// the order boards appear on the page and in the firmware history.
-const boards = [
-  {
-    id: "gezipai",
-    chip: "ESP32-S3",
-    flashable: true,
-    image: "/boards/gezipai.jpg",
-    zh: {
-      name: "格子派 gezipai",
-      tagline: "ESP32-S3 彩色显示终端",
-      features: [
-        "ES7210 麦克风 ADC + ES8311 DAC 音频链路",
-        "240×240 ST7789 彩色屏与 LVGL 图形界面",
-        "屏幕菜单管理 MDC1200、DTMF、CTCSS/PL 与 APRS",
-        "音量+/音量-/PTT 三按键、电池电压检测",
-        "三色状态灯、SCI 串口透明传输",
-        "BLE 配网、Wi-Fi 配置门户、远程 AT 与 OTA 升级",
-      ],
-    },
-    en: {
-      name: "Gezipai",
-      tagline: "ESP32-S3 color display terminal",
-      features: [
-        "ES7210 microphone ADC and ES8311 DAC audio path",
-        "240×240 ST7789 color display with LVGL UI",
-        "On-screen MDC1200, DTMF, CTCSS/PL, and APRS controls",
-        "Volume up/down/PTT buttons and battery-voltage sensing",
-        "Three-color status LED and SCI serial passthrough",
-        "BLE provisioning, Wi-Fi portal, remote AT, and OTA updates",
-      ],
-    },
-  },
-  {
-    id: "bh4tdv",
-    chip: "ESP32-S3",
-    flashable: true,
-    image: "/boards/bh4tdv-esp32-3188.jpg",
-    zh: {
-      name: "BH4TDV ESP32 3188",
-      tagline: "ESP32-S3 无屏电台接口",
-      features: [
-        "ES8311 全双工音频，连接 Moto3188 / NRL 电台",
-        "PTT 输出、SQL 检测与三色状态灯",
-        "三位频道选择输出，支持 0–7 共 8 个频道",
-        "SCI 串口透明传输；无板载屏幕",
-        "BLE 配网、Wi-Fi 配置门户、远程 AT 与 OTA 升级",
-      ],
-    },
-    en: {
-      name: "BH4TDV ESP32 3188",
-      tagline: "ESP32-S3 headless radio interface",
-      features: [
-        "ES8311 full-duplex audio for Moto3188 / NRL radios",
-        "PTT output, squelch detection, and three-color status LEDs",
-        "Three-bit channel selection for channels 0–7",
-        "SCI serial passthrough; no onboard display",
-        "BLE provisioning, Wi-Fi portal, remote AT, and OTA updates",
-      ],
-    },
-  },
-  {
-    id: "s31_korvo",
-    chip: "ESP32-S31 · RISC-V",
-    flashable: true,
-    image: "/boards/s31-korvo.png",
-    zh: {
-      name: "S31 Korvo",
-      tagline: "ESP32-S31 全功能开发板",
-      features: [
-        "ES8389 音频、800×480 RGB 电容触摸屏与 LVGL 界面",
-        "ADC 按键：音量、模式和 PTT；板载 RGB 状态灯",
-        "TF 卡、USB-OTG 主机、本地音乐与网络收音机",
-        "蓝牙 HFP 耳机 / A2DP、ESP-NOW 脱网对讲、AI 语音",
-        "UART1/SCI 与 UART2/GPS 可由 Web/AT 配置，默认关闭并与 DVP 摄像头互斥",
-      ],
-    },
-    en: {
-      name: "S31 Korvo",
-      tagline: "ESP32-S31 full-featured dev board",
-      features: [
-        "ES8389 audio, 800×480 RGB capacitive touch display, and LVGL UI",
-        "ADC volume/mode/PTT buttons and onboard RGB status LED",
-        "TF card, USB-OTG host, local music, and Internet radio",
-        "Bluetooth HFP headset / A2DP, ESP-NOW intercom, and AI voice",
-        "Web/AT configurable UART1/SCI and UART2/GPS; off by default and mutually exclusive with DVP cameras",
-      ],
-    },
-  },
-  {
-    id: "s31_function_coreboard",
-    chip: "ESP32-S31 · RISC-V",
-    flashable: true,
-    image: "/boards/s31-function-coreboard.png",
-    zh: {
-      name: "S31 功能核心板",
-      tagline: "ESP32-S31 精简核心板",
-      features: [
-        "ES8311 音频编解码，适合网络语音与电台桥接",
-        "YT8531 千兆以太网，Wi-Fi 可作为回退连接",
-        "USB-A 主机、WS2812 RGB 状态灯与 SCI 串口",
-        "紧凑无屏、无实体音量/PTT 按键的核心板方案",
-        "Wi-Fi 配置门户、远程 AT 与 OTA 升级",
-      ],
-    },
-    en: {
-      name: "S31 Function Coreboard",
-      tagline: "ESP32-S31 compact core board",
-      features: [
-        "ES8311 audio codec for network voice and radio bridging",
-        "YT8531 Gigabit Ethernet with Wi-Fi fallback",
-        "USB-A host, WS2812 RGB status LED, and SCI serial port",
-        "Compact screenless core board without volume/PTT buttons",
-        "Wi-Fi configuration portal, remote AT, and OTA updates",
-      ],
-    },
-  },
-];
-
-// ✓ = supported, △ = supported with a board-specific limitation, — = unavailable.
-// Keep this matrix aligned with README.md and board_pins.h so the home page is
-// a practical selection guide instead of four isolated marketing cards.
-const featureMatrix = [
-  {
-    zh: "NRL UDP 网络语音桥接（G.711 / Opus）",
-    en: "NRL UDP voice bridge (G.711 / Opus)",
-    all: "yes",
-  },
-  {
-    zh: "Wi-Fi 配置门户 / SoftAP 配网",
-    en: "Wi-Fi configuration portal / SoftAP provisioning",
-    all: "yes",
-  },
-  { zh: "远程 AT 配置与设备 OTA 升级", en: "Remote AT configuration and device OTA", all: "yes" },
-  {
-    zh: "APRS-IS 网络与无线电 AFSK 收发",
-    en: "APRS-IS networking and radio AFSK TX/RX",
-    all: "yes",
-  },
-  { zh: "MDC1200 信令编码与解码", en: "MDC1200 signaling encode/decode", all: "yes" },
-  { zh: "DTMF 信令编码与解码", en: "DTMF signaling encode/decode", all: "yes" },
-  { zh: "CTCSS/PL 亚音频率识别", en: "CTCSS/PL tone-frequency detection", all: "yes" },
-  {
-    zh: "屏幕信令与 APRS 设置菜单",
-    en: "On-screen signaling and APRS settings",
-    gezipai: "yes",
-    bh4tdv: "no",
-    s31_korvo: "partial",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "网页 USB 首次全量刷机（Chrome / Edge）",
-    en: "Browser USB full flashing (Chrome / Edge)",
-    gezipai: "yes",
-    bh4tdv: "yes",
-    s31_korvo: "no",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "BLE 蓝牙配网",
-    en: "BLE provisioning",
-    gezipai: "yes",
-    bh4tdv: "yes",
-    s31_korvo: "no",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "ES7210 专用麦克风 ADC",
-    en: "Dedicated ES7210 microphone ADC",
-    gezipai: "yes",
-    bh4tdv: "no",
-    s31_korvo: "no",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "ES8311 音频编解码",
-    en: "ES8311 audio codec",
-    gezipai: "yes",
-    bh4tdv: "yes",
-    s31_korvo: "no",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "ES8389 音频编解码",
-    en: "ES8389 audio codec",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "AEC、降噪、高通、尾音抑制与编解码器增益",
-    en: "AEC, noise reduction, high-pass, tail suppression, and codec gain",
-    all: "yes",
-  },
-  {
-    zh: "电台 PTT / SQL 控制",
-    en: "Radio PTT / squelch control",
-    gezipai: "yes",
-    bh4tdv: "yes",
-    s31_korvo: "partial",
-    s31_function_coreboard: "partial",
-  },
-  {
-    zh: "三位频道选择（0–7）",
-    en: "Three-bit channel selection (0–7)",
-    gezipai: "no",
-    bh4tdv: "yes",
-    s31_korvo: "no",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "SCI 串口透明传输",
-    en: "SCI serial passthrough",
-    gezipai: "yes",
-    bh4tdv: "yes",
-    s31_korvo: "partial",
-    s31_function_coreboard: "yes",
-  },
-  { zh: "状态灯", en: "Status indicator", all: "yes" },
-  {
-    zh: "彩色显示屏",
-    en: "Color display",
-    gezipai: "yes",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "触摸界面",
-    en: "Touch interface",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "触控俄罗斯方块小游戏",
-    en: "Touch Tetris mini-game",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "本地实体按键 / PTT",
-    en: "Physical buttons / PTT",
-    gezipai: "yes",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "电池电压检测",
-    en: "Battery-voltage sensing",
-    gezipai: "yes",
-    bh4tdv: "no",
-    s31_korvo: "no",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "TF 卡本地媒体",
-    en: "TF-card local media",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-  {
-    zh: "USB 主机 / U 盘存储",
-    en: "USB host / flash storage",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "SMB 网络共享媒体",
-    en: "SMB network-share media",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "千兆以太网",
-    en: "Gigabit Ethernet",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "no",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "蓝牙耳机 / 外接蓝牙音箱麦克风（HFP / A2DP）",
-    en: "Bluetooth headset / external speaker-mic (HFP / A2DP)",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "蓝牙 HFP 双向语音通话",
-    en: "Bluetooth HFP two-way voice calls",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "蓝牙耳机按键 PTT",
-    en: "Bluetooth headset-button PTT",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  { zh: "ESP-NOW 脱网对讲", en: "ESP-NOW offline intercom", all: "yes" },
-  {
-    zh: "本地音乐、网络收音机与定时播报",
-    en: "Local music, Internet radio, and timed playback",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "小智 AI 语音助手",
-    en: "Xiaozhi AI voice assistant",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "yes",
-  },
-  {
-    zh: "NRL 视频通话（DVP 摄像头）",
-    en: "NRL video calls (DVP camera)",
-    gezipai: "no",
-    bh4tdv: "no",
-    s31_korvo: "yes",
-    s31_function_coreboard: "no",
-  },
-];
+// Board catalog and feature matrix are served by the API (/api/v1/catalog).
 
 const messages = {
   zh: {
@@ -733,7 +391,7 @@ const app = createApp({
     const username = ref("");
     const password = ref("");
     const history = ref({}); // board id -> release[]
-    const catalogBoards = ref(boards);
+    const catalogBoards = ref([]);
     const catalogFeatures = ref([]);
     const devices = ref([]);
     const loadError = ref("");
@@ -948,11 +606,7 @@ const app = createApp({
     const boardName = (id) => {
       const entry = catalogBoards.value.find((b) => b.id === id);
       if (!entry) return id;
-      return entry.name_zh
-        ? language.value === "zh"
-          ? entry.name_zh
-          : entry.name_en
-        : entry[language.value].name;
+      return language.value === "zh" ? entry.name_zh : entry.name_en;
     };
     const requestError = async (response) => {
       const body = await response.json().catch(() => ({}));
@@ -1382,32 +1036,20 @@ const app = createApp({
       return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
     };
     const localizedBoards = computed(() =>
-      catalogBoards.value.map((b) => {
-        if (!b.name_zh)
-          return {
-            id: b.id,
-            chip: b.chip,
-            flashable: b.flashable,
-            image: b.image,
-            ...b[language.value],
-          };
-        return {
-          id: b.id,
-          chip: b.chip_label,
-          flashable: Boolean(b.web_flash_chip_family),
-          image: b.image_url,
-          name: language.value === "zh" ? b.name_zh : b.name_en,
-          tagline: language.value === "zh" ? b.tagline_zh : b.tagline_en,
-          description: language.value === "zh" ? b.description_zh : b.description_en,
-          features: language.value === "zh" ? b.highlights_zh : b.highlights_en,
-          status: b.status,
-        };
-      }),
+      catalogBoards.value.map((b) => ({
+        id: b.id,
+        chip: b.chip_label,
+        flashable: Boolean(b.web_flash_chip_family),
+        image: b.image_url,
+        name: language.value === "zh" ? b.name_zh : b.name_en,
+        tagline: language.value === "zh" ? b.tagline_zh : b.tagline_en,
+        description: language.value === "zh" ? b.description_zh : b.description_en,
+        features: language.value === "zh" ? b.highlights_zh : b.highlights_en,
+        status: b.status,
+      })),
     );
-    const localizedFeatureMatrix = computed(() => {
-      if (!catalogFeatures.value.length)
-        return featureMatrix.map((row) => ({ ...row, label: row[language.value] }));
-      return catalogFeatures.value
+    const localizedFeatureMatrix = computed(() =>
+      catalogFeatures.value
         .filter((f) => f.active)
         .map((f) => {
           const row = { key: f.key, label: language.value === "zh" ? f.label_zh : f.label_en };
@@ -1416,8 +1058,8 @@ const app = createApp({
             row[`${b.id}_note`] = b.feature_notes?.[f.key]?.[language.value] || "";
           }
           return row;
-        });
-    });
+        }),
+    );
     const publicBoards = computed(() =>
       localizedBoards.value.filter((b) => !b.status || b.status === "published"),
     );
@@ -1441,7 +1083,7 @@ const app = createApp({
       const next = {};
       await Promise.all(
         catalogBoards.value
-          .filter((b) => b.web_flash_chip_family || b.flashable)
+          .filter((b) => b.web_flash_chip_family)
           .map(async (b) => {
             try {
               const response = await fetch(apiURL(`/flasher/manifest-${b.id}.json`), {

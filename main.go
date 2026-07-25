@@ -557,8 +557,8 @@ func (s *server) serveFirmware(w http.ResponseWriter, r *http.Request) {
 
 // serveFlasher generates the esp-web-tools manifest for a board on the fly from
 // its latest uploaded flash package: GET /flasher/manifest-<board>.json. The
-// manifest points at the package parts under /packages/. Boards whose package
-// has no chip_family (not web-flashable, e.g. the ESP32-S31) return 404.
+// manifest points at the package parts under /packages/. If the package.json
+// has no chip_family, the board's registered web_flash_chip_family is used.
 func (s *server) serveFlasher(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/flasher/")
 	board, ok := strings.CutPrefix(name, "manifest-")
@@ -577,7 +577,15 @@ func (s *server) serveFlasher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meta, err := s.readPackageMeta(board, releases[0].Version)
-	if err != nil || meta.ChipFamily == "" {
+	if err != nil {
+		writeError(w, 404, "no web-flashable package for this board")
+		return
+	}
+	chipFamily := meta.ChipFamily
+	if chipFamily == "" {
+		chipFamily, _ = s.boardChipFamily(board)
+	}
+	if chipFamily == "" {
 		writeError(w, 404, "no web-flashable package for this board")
 		return
 	}
@@ -592,7 +600,7 @@ func (s *server) serveFlasher(w http.ResponseWriter, r *http.Request) {
 		"name":                     "NRL " + board,
 		"version":                  meta.Version,
 		"new_install_prompt_erase": true,
-		"builds":                   []map[string]any{{"chipFamily": meta.ChipFamily, "parts": parts}},
+		"builds":                   []map[string]any{{"chipFamily": chipFamily, "parts": parts}},
 	})
 }
 

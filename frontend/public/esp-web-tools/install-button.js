@@ -1,1 +1,119 @@
-const lang=()=>{try{return localStorage.getItem("nrl_lang")==="zh"?"zh":"en"}catch(e){return"en"}},tr=(e,t)=>lang()==="zh"?t:e,safeClose=async e=>{try{e.readable||e.writable?await e.close():void 0}catch(e){if("InvalidStateError"!==e.name)throw e}},openDialog=async e=>{let t;import("./install-dialog-C5LjR_e6.js?v=2");try{t=await navigator.serial.requestPort()}catch(t){return"NotFoundError"===t.name?void import("./index-Dt9w-IG1.js").then((t=>t.openNoPortPickedDialog((()=>openDialog(e))))):void alert(`${tr("Error","错误")}: ${t.message}`)}if(!t)return;try{await t.open({baudRate:115200,bufferSize:8192})}catch(e){return void alert(e.message)}const o=document.createElement("ewt-install-dialog");o.port=t,o.manifestPath=e.manifest||e.getAttribute("manifest"),o.initialAction=e.action||e.getAttribute("action")||"",o.overrides=e.overrides,o.addEventListener("closed",(()=>{safeClose(t)}),{once:!0}),document.body.appendChild(o)};class EspWebInstallButton extends HTMLElement{connectedCallback(){if(this.renderRoot)return;if(this.renderRoot=this.attachShadow({mode:"open"}),!EspWebInstallButton.isSupported||!EspWebInstallButton.isAllowed)return this.toggleAttribute("install-unsupported",!0),void(this.renderRoot.innerHTML=EspWebInstallButton.isAllowed?`<slot name='unsupported'>${tr("Your browser does not support installing ESP devices. Use Google Chrome or Microsoft Edge.","当前浏览器不支持给 ESP 设备安装固件，请使用 Google Chrome 或 Microsoft Edge。")}</slot>`:`<slot name='not-allowed'>${tr("Installing ESP devices is only possible on HTTPS websites or localhost.","只能在 HTTPS 网站或 localhost 页面上安装 ESP 设备。")}</slot>`);this.toggleAttribute("install-supported",!0);const e=document.createElement("slot");e.addEventListener("click",(async e=>{e.preventDefault(),openDialog(this)})),e.name="activate";const t=document.createElement("button");if(t.innerText=tr("Connect","连接"),e.append(t),"adoptedStyleSheets"in Document.prototype&&"replaceSync"in CSSStyleSheet.prototype){const e=new CSSStyleSheet;e.replaceSync(EspWebInstallButton.style),this.renderRoot.adoptedStyleSheets=[e]}else{const e=document.createElement("style");e.innerText=EspWebInstallButton.style,this.renderRoot.append(e)}this.renderRoot.append(e)}}EspWebInstallButton.isSupported="serial"in navigator,EspWebInstallButton.isAllowed=window.isSecureContext,EspWebInstallButton.style='\n  button {\n    position: relative;\n    cursor: pointer;\n    font-size: 14px;\n    font-weight: 500;\n    padding: 10px 24px;\n    color: var(--esp-tools-button-text-color, #fff);\n    background-color: var(--esp-tools-button-color, #03a9f4);\n    border: none;\n    border-radius: var(--esp-tools-button-border-radius, 9999px);\n  }\n  button::before {\n    content: " ";\n    position: absolute;\n    top: 0;\n    bottom: 0;\n    left: 0;\n    right: 0;\n    opacity: 0.2;\n    border-radius: var(--esp-tools-button-border-radius, 9999px);\n  }\n  button:hover::before {\n    background-color: rgba(255,255,255,.8);\n  }\n  button:focus {\n    outline: none;\n  }\n  button:focus::before {\n    background-color: white;\n  }\n  button:active::before {\n    background-color: grey;\n  }\n  :host([active]) button {\n    color: rgba(0, 0, 0, 0.38);\n    background-color: rgba(0, 0, 0, 0.12);\n    box-shadow: none;\n    cursor: unset;\n    pointer-events: none;\n  }\n  .hidden {\n    display: none;\n  }',customElements.define("esp-web-install-button",EspWebInstallButton);
+const connect = async button => {
+  import('./install-dialog.js').then(function (n) { return n.i; });
+  let port;
+  try {
+    port = await navigator.serial.requestPort();
+  } catch (err) {
+    if (err.name === "NotFoundError") {
+      import('./index.js').then(mod => mod.openNoPortPickedDialog(() => connect(button)));
+      return;
+    }
+    alert(`Error: ${err.message}`);
+    return;
+  }
+  if (!port) {
+    return;
+  }
+  try {
+    await port.open({
+      baudRate: 115200,
+      bufferSize: 8192
+    });
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+  const el = document.createElement("ewt-install-dialog");
+  el.port = port;
+  el.manifestPath = button.manifest || button.getAttribute("manifest");
+  el.overrides = button.overrides;
+  el.addEventListener("closed", () => {
+    port.close();
+  }, {
+    once: true
+  });
+  document.body.appendChild(el);
+};
+
+class InstallButton extends HTMLElement {
+  connectedCallback() {
+    if (this.renderRoot) {
+      return;
+    }
+    this.renderRoot = this.attachShadow({
+      mode: "open"
+    });
+    if (!InstallButton.isSupported || !InstallButton.isAllowed) {
+      this.toggleAttribute("install-unsupported", true);
+      this.renderRoot.innerHTML = !InstallButton.isAllowed ? "<slot name='not-allowed'>You can only install ESP devices on HTTPS websites or on the localhost.</slot>" : "<slot name='unsupported'>Your browser does not support installing things on ESP devices. Use Mozilla Firefox, Google Chrome or Microsoft Edge.</slot>";
+      return;
+    }
+    this.toggleAttribute("install-supported", true);
+    const slot = document.createElement("slot");
+    slot.addEventListener("click", async ev => {
+      ev.preventDefault();
+      connect(this);
+    });
+    slot.name = "activate";
+    const button = document.createElement("button");
+    button.innerText = "Connect";
+    slot.append(button);
+    if ("adoptedStyleSheets" in Document.prototype && "replaceSync" in CSSStyleSheet.prototype) {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(InstallButton.style);
+      this.renderRoot.adoptedStyleSheets = [sheet];
+    } else {
+      const styleSheet = document.createElement("style");
+      styleSheet.innerText = InstallButton.style;
+      this.renderRoot.append(styleSheet);
+    }
+    this.renderRoot.append(slot);
+  }
+}
+InstallButton.isSupported = "serial" in navigator;
+InstallButton.isAllowed = window.isSecureContext;
+InstallButton.style = `
+  button {
+    position: relative;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 24px;
+    color: var(--esp-tools-button-text-color, #fff);
+    background-color: var(--esp-tools-button-color, #03a9f4);
+    border: none;
+    border-radius: var(--esp-tools-button-border-radius, 9999px);
+  }
+  button::before {
+    content: " ";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0.2;
+    border-radius: var(--esp-tools-button-border-radius, 9999px);
+  }
+  button:hover::before {
+    background-color: rgba(255,255,255,.8);
+  }
+  button:focus {
+    outline: none;
+  }
+  button:focus::before {
+    background-color: white;
+  }
+  button:active::before {
+    background-color: grey;
+  }
+  :host([active]) button {
+    color: rgba(0, 0, 0, 0.38);
+    background-color: rgba(0, 0, 0, 0.12);
+    box-shadow: none;
+    cursor: unset;
+    pointer-events: none;
+  }
+  .hidden {
+    display: none;
+  }`;
+customElements.define("esp-web-install-button", InstallButton);

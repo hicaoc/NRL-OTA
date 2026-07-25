@@ -1,4 +1,4 @@
-// The full esm-bundler build (not the runtime-only default) is required because
+﻿// The full esm-bundler build (not the runtime-only default) is required because
 // the app below uses an inline `template` string, which needs Vue's runtime
 // template compiler. Without it the app never renders and the page is stuck on
 // the "Loading NRL OTA…" fallback.
@@ -74,7 +74,7 @@ const boards = [
   {
     id: "s31_korvo",
     chip: "ESP32-S31 · RISC-V",
-    flashable: false,
+    flashable: true,
     image: "/boards/s31-korvo.png",
     zh: {
       name: "S31 Korvo",
@@ -102,7 +102,7 @@ const boards = [
   {
     id: "s31_function_coreboard",
     chip: "ESP32-S31 · RISC-V",
-    flashable: false,
+    flashable: true,
     image: "/boards/s31-function-coreboard.png",
     zh: {
       name: "S31 功能核心板",
@@ -394,7 +394,7 @@ const messages = {
     noReleases: "该板卡暂无已发布固件。",
     flashHeading: "USB 网页刷机",
     flashIntro:
-      "用 USB 数据线连接设备，在 Chrome 或 Edge 浏览器里刷写完整固件（含引导程序与分区表）。需要 HTTPS 或本机访问。仅支持 ESP32-S3 板卡。",
+      "用 USB 数据线连接设备，在 Chrome 或 Edge 浏览器里刷写完整固件（含引导程序与分区表）。需要 HTTPS 或本机访问。支持 ESP32-S3 / S31 板卡。",
     flashReady: "支持 USB 网页刷机",
     flashButton: "USB 刷机",
     flashUnsupported: "当前浏览器不支持 Web Serial，请使用 Chrome 或 Edge。",
@@ -402,7 +402,7 @@ const messages = {
       "当前页面使用非安全的 HTTP 地址。Web Serial 要求使用 HTTPS（localhost 除外），请通过配置了 HTTPS 的服务器地址访问。",
     flashNotAllowed: "Web Serial 权限被阻止，请检查浏览器的网站权限或管理员策略。",
     flashSerialOnly:
-      "RISC-V 芯片暂不支持网页刷机，请使用串口烧录（scripts/build.py <board> flash）。",
+      "该板卡暂不支持网页刷机，请使用串口烧录（scripts/build.py <board> flash）。",
     flashUnavailable: "该板卡暂未上传可刷写的固件包。",
     flashTip: "若无法识别设备，请按住 BOOT 再插入 USB 后重试。",
     navSerial: "串口调试",
@@ -573,7 +573,7 @@ const messages = {
     noReleases: "No firmware has been published for this board yet.",
     flashHeading: "USB web flashing",
     flashIntro:
-      "Connect the device over USB and flash the full firmware (bootloader and partition table included) from Chrome or Edge. Requires HTTPS or localhost. ESP32-S3 boards only.",
+      "Connect the device over USB and flash the full firmware (bootloader and partition table included) from Chrome or Edge. Requires HTTPS or localhost. ESP32-S3 / S31 boards.",
     flashReady: "Web-flashable over USB",
     flashButton: "Flash via USB",
     flashUnsupported: "This browser does not support Web Serial. Use Chrome or Edge.",
@@ -582,7 +582,7 @@ const messages = {
     flashNotAllowed:
       "Web Serial permission was blocked. Check the site's browser permissions or administrator policy.",
     flashSerialOnly:
-      "RISC-V chip — not web-flashable. Use serial flashing (scripts/build.py <board> flash).",
+      "This board is not web-flashable. Use serial flashing (scripts/build.py <board> flash).",
     flashUnavailable: "No flashable firmware package has been staged for this board yet.",
     flashTip: "If the device is not detected, hold BOOT while plugging in USB, then retry.",
     navSerial: "Serial debug",

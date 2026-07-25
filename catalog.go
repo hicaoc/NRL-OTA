@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"crypto/sha256"
@@ -116,7 +116,23 @@ CREATE TABLE IF NOT EXISTS firmware_uploads (
 	// Legacy releases derive their URL from filename. This remains idempotent.
 	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN url TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE releases ADD COLUMN archived_at INTEGER NOT NULL DEFAULT 0`)
-	return seedCatalog(db)
+	if err := seedCatalog(db); err != nil {
+		return err
+	}
+	return migrateCatalog(db)
+}
+
+// migrateCatalog applies incremental data migrations for existing deployments.
+func migrateCatalog(db *sql.DB) error {
+	var ver int
+	_ = db.QueryRow(`SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&ver)
+	if ver < 2 {
+		// v2: ESP32-S31 boards are now web-flashable.
+		_, _ = db.Exec(`UPDATE boards SET web_flash_chip_family='ESP32-S31' WHERE id IN ('s31_korvo','s31_function_coreboard') AND (web_flash_chip_family IS NULL OR web_flash_chip_family='')`)
+		_, _ = db.Exec(`UPDATE board_features SET state='yes' WHERE feature_key='web_flash' AND board_id IN ('s31_korvo','s31_function_coreboard') AND state='no'`)
+		_, _ = db.Exec(`INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(2,?)`, time.Now().Unix())
+	}
+	return nil
 }
 
 type seedBoard struct {
@@ -138,10 +154,10 @@ func seedCatalog(db *sql.DB) error {
 		{"bh4tdv", "BH4TDV ESP32 3188", "BH4TDV ESP32 3188", "ESP32-S3 无屏电台接口", "ESP32-S3 headless radio interface", "ESP32-S3", "ESP32-S3", "/boards/bh4tdv-esp32-3188.jpg", 20,
 			[]string{"ES8311 全双工音频，连接 Moto3188 / NRL 电台", "PTT、SQL 与三位频道选择", "SCI 串口透明传输", "BLE 配网、Wi-Fi 配置、远程 AT 与 OTA"},
 			[]string{"ES8311 full-duplex audio for Moto3188 / NRL radios", "PTT, squelch, and three-bit channel selection", "SCI serial passthrough", "BLE provisioning, Wi-Fi portal, remote AT, and OTA"}},
-		{"s31_korvo", "S31 Korvo", "S31 Korvo", "ESP32-S31 全功能开发板", "ESP32-S31 full-featured dev board", "ESP32-S31 · RISC-V", "", "/boards/s31-korvo.png", 30,
+		{"s31_korvo", "S31 Korvo", "S31 Korvo", "ESP32-S31 全功能开发板", "ESP32-S31 full-featured dev board", "ESP32-S31 · RISC-V", "ESP32-S31", "/boards/s31-korvo.png", 30,
 			[]string{"ES8389 音频、800×480 RGB 电容触摸屏", "TF 卡、USB 主机、本地音乐与网络收音机", "蓝牙 HFP / A2DP、ESP-NOW 与 AI 语音", "可配置 UART1/SCI 与 UART2/GPS"},
 			[]string{"ES8389 audio and 800×480 RGB capacitive display", "TF card, USB host, local music, and Internet radio", "Bluetooth HFP / A2DP, ESP-NOW, and AI voice", "Configurable UART1/SCI and UART2/GPS"}},
-		{"s31_function_coreboard", "S31 功能核心板", "S31 Function Coreboard", "ESP32-S31 精简核心板", "ESP32-S31 compact core board", "ESP32-S31 · RISC-V", "", "/boards/s31-function-coreboard.png", 40,
+		{"s31_function_coreboard", "S31 功能核心板", "S31 Function Coreboard", "ESP32-S31 精简核心板", "ESP32-S31 compact core board", "ESP32-S31 · RISC-V", "ESP32-S31", "/boards/s31-function-coreboard.png", 40,
 			[]string{"ES8311 音频编解码", "YT8531 千兆以太网与 Wi-Fi 回退", "USB-A 主机、RGB 状态灯与 SCI 串口", "无屏核心板方案"},
 			[]string{"ES8311 audio codec", "YT8531 Gigabit Ethernet with Wi-Fi fallback", "USB-A host, RGB status LED, and SCI serial", "Compact screenless core-board design"}},
 	}
@@ -154,7 +170,7 @@ func seedCatalog(db *sql.DB) error {
 		{"dtmf", "DTMF 信令编码与解码", "DTMF signaling encode/decode", allBoards("yes")},
 		{"ctcss", "CTCSS/PL 亚音频率识别", "CTCSS/PL tone-frequency detection", allBoards("yes")},
 		{"screen_signaling", "屏幕信令与 APRS 设置菜单", "On-screen signaling and APRS settings", states("yes", "no", "partial", "no")},
-		{"web_flash", "网页 USB 首次全量刷机", "Browser USB full flashing", states("yes", "yes", "no", "no")},
+		{"web_flash", "网页 USB 首次全量刷机", "Browser USB full flashing", states("yes", "yes", "yes", "yes")},
 		{"ble", "BLE 蓝牙配网", "BLE provisioning", states("yes", "yes", "no", "no")},
 		{"es7210", "ES7210 麦克风 ADC", "ES7210 microphone ADC", states("yes", "no", "no", "no")},
 		{"es8311", "ES8311 音频编解码", "ES8311 audio codec", states("yes", "yes", "no", "yes")},

@@ -1,4 +1,4 @@
-// NRL OTA server: Go API + SQLite registry. The Vue frontend is deployed separately.
+﻿// NRL OTA server: Go API + SQLite registry. The Vue frontend is deployed separately.
 package main
 
 import (

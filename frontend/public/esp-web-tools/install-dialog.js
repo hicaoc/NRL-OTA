@@ -1,4 +1,4 @@
-import { e as e$1, _ as __decorate, o as o$2, i as i$2, x, a as i$3, n as n$3, t, m as mixinDelegatesAria, b as e$2, E, c as e$3, s as styles$g, D as Divider, d as internals, f as mixinElementInternals, r as r$1, g as isActivationClick, h as dispatchActivationClick, j as redispatchEvent, k as setupFormSubmitter, B, l as EASING, p as e$4, q as i$4, u as t$1, T as T$1, v as createAnimationSignal, w as b, y as dialogStyles } from './styles.js';
+import { e as e$1, _ as __decorate, o as o$2, i as i$2, x, a as i$3, n as n$3, t, m as mixinDelegatesAria, b as e$2, E, c as e$3, s as styles$g, D as Divider, d as internals, f as mixinElementInternals, r as r$1, g as isActivationClick, h as dispatchActivationClick, j as redispatchEvent, k as setupFormSubmitter, B, l as EASING, p as e$4, q as i$4, u as t$1, T as T$1, v as createAnimationSignal, w as b, y as dialogStyles } from './styles.js?v=4';
 
 /**
  * @license
@@ -9065,44 +9065,44 @@ async function getStubJsonByChipName(chipName, chipRevision) {
   let jsonStub;
   switch (chipName) {
     case "ESP32":
-      jsonStub = await import('./stub_flasher_32.js');
+      jsonStub = await import('./stub_flasher_32.js?v=4');
       break;
     case "ESP32-C2":
-      jsonStub = await import('./stub_flasher_32c2.js');
+      jsonStub = await import('./stub_flasher_32c2.js?v=4');
       break;
     case "ESP32-C3":
-      jsonStub = await import('./stub_flasher_32c3.js');
+      jsonStub = await import('./stub_flasher_32c3.js?v=4');
       break;
     case "ESP32-C5":
-      jsonStub = await import('./stub_flasher_32c5.js');
+      jsonStub = await import('./stub_flasher_32c5.js?v=4');
       break;
     case "ESP32-C6":
-      jsonStub = await import('./stub_flasher_32c6.js');
+      jsonStub = await import('./stub_flasher_32c6.js?v=4');
       break;
     case "ESP32-C61":
-      jsonStub = await import('./stub_flasher_32c61.js');
+      jsonStub = await import('./stub_flasher_32c61.js?v=4');
       break;
     case "ESP32-H2":
-      jsonStub = await import('./stub_flasher_32h2.js');
+      jsonStub = await import('./stub_flasher_32h2.js?v=4');
       break;
     case "ESP32-P4":
       if (chipRevision && chipRevision < 300) {
-        jsonStub = await import('./stub_flasher_32p4rc1.js');
+        jsonStub = await import('./stub_flasher_32p4rc1.js?v=4');
       } else {
-        jsonStub = await import('./stub_flasher_32p4.js');
+        jsonStub = await import('./stub_flasher_32p4.js?v=4');
       }
       break;
     case "ESP32-S2":
-      jsonStub = await import('./stub_flasher_32s2.js');
+      jsonStub = await import('./stub_flasher_32s2.js?v=4');
       break;
     case "ESP32-S3":
-      jsonStub = await import('./stub_flasher_32s3.js');
+      jsonStub = await import('./stub_flasher_32s3.js?v=4');
       break;
     case "ESP32-S31":
-      jsonStub = await import('./stub_flasher_32s31.js');
+      jsonStub = await import('./stub_flasher_32s31.js?v=4');
       break;
     case "ESP8266":
-      jsonStub = await import('./stub_flasher_8266.js');
+      jsonStub = await import('./stub_flasher_8266.js?v=4');
       break;
   }
   if (jsonStub) {
@@ -10102,63 +10102,63 @@ async function chipId2Chip(chipId) {
       {
         const {
           ESP32C3ROM
-        } = await import('./esp32c3.js');
+        } = await import('./esp32c3.js?v=4');
         return new ESP32C3ROM();
       }
     case 9:
       {
         const {
           ESP32S3ROM
-        } = await import('./esp32s3.js');
+        } = await import('./esp32s3.js?v=4');
         return new ESP32S3ROM();
       }
     case 12:
       {
         const {
           ESP32C2ROM
-        } = await import('./esp32c2.js');
+        } = await import('./esp32c2.js?v=4');
         return new ESP32C2ROM();
       }
     case 13:
       {
         const {
           ESP32C6ROM
-        } = await import('./esp32c6.js');
+        } = await import('./esp32c6.js?v=4');
         return new ESP32C6ROM();
       }
     case 16:
       {
         const {
           ESP32H2ROM
-        } = await import('./esp32h2.js');
+        } = await import('./esp32h2.js?v=4');
         return new ESP32H2ROM();
       }
     case 18:
       {
         const {
           ESP32P4ROM
-        } = await import('./esp32p4.js');
+        } = await import('./esp32p4.js?v=4');
         return new ESP32P4ROM();
       }
     case 20:
       {
         const {
           ESP32C61ROM
-        } = await import('./esp32c61.js');
+        } = await import('./esp32c61.js?v=4');
         return new ESP32C61ROM();
       }
     case 23:
       {
         const {
           ESP32C5ROM
-        } = await import('./esp32c5.js');
+        } = await import('./esp32c5.js?v=4');
         return new ESP32C5ROM();
       }
     case 32:
       {
         const {
           ESP32S31ROM
-        } = await import('./esp32s31.js');
+        } = await import('./esp32s31.js?v=4');
         return new ESP32S31ROM();
       }
     default:
@@ -10176,7 +10176,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32ROM
-        } = await import('./esp32.js');
+        } = await import('./esp32.js?v=4');
         return new ESP32ROM();
       }
     case 0xc21e06f:
@@ -10185,7 +10185,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C2ROM
-        } = await import('./esp32c2.js');
+        } = await import('./esp32c2.js?v=4');
         return new ESP32C2ROM();
       }
     case 0x6921506f:
@@ -10195,14 +10195,14 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C3ROM
-        } = await import('./esp32c3.js');
+        } = await import('./esp32c3.js?v=4');
         return new ESP32C3ROM();
       }
     case 0x2ce0806f:
       {
         const {
           ESP32C6ROM
-        } = await import('./esp32c6.js');
+        } = await import('./esp32c6.js?v=4');
         return new ESP32C6ROM();
       }
     case 0x2421606f:
@@ -10211,7 +10211,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C61ROM
-        } = await import('./esp32c61.js');
+        } = await import('./esp32c61.js?v=4');
         return new ESP32C61ROM();
       }
     case 0x1101406f:
@@ -10220,7 +10220,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C5ROM
-        } = await import('./esp32c5.js');
+        } = await import('./esp32c5.js?v=4');
         return new ESP32C5ROM();
       }
     case 0xd7b73e80:
@@ -10228,21 +10228,21 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32H2ROM
-        } = await import('./esp32h2.js');
+        } = await import('./esp32h2.js?v=4');
         return new ESP32H2ROM();
       }
     case 0x09:
       {
         const {
           ESP32S3ROM
-        } = await import('./esp32s3.js');
+        } = await import('./esp32s3.js?v=4');
         return new ESP32S3ROM();
       }
     case 0x000007c6:
       {
         const {
           ESP32S2ROM
-        } = await import('./esp32s2.js');
+        } = await import('./esp32s2.js?v=4');
         return new ESP32S2ROM();
       }
     case 0xfff0c101:
@@ -10258,7 +10258,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32P4ROM
-        } = await import('./esp32p4.js');
+        } = await import('./esp32p4.js?v=4');
         return new ESP32P4ROM();
       }
     default:
@@ -14074,8 +14074,39 @@ class SurfacePositionController {
      * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_logical_properties_and_values
      *
      * ┌───── inline/blockDocumentOffset  inlineScrollbarWidth
-     * �?      �?                                   �?     * �?    ┌─▼─────�?                             │Document
-     * �?   ┌┼───────┴──────────────────────────────┼────────�?     * �?   ││                                      �?       �?     * └──�?││ ┌───── inline/blockWindowOffset      �?       �?     *      ││ �?      �?                           �?       �?     *      ││ �?    ┌─▼───�?                Window┌┐        �?     *      └┤ �?   ┌┼─────┴───────────────────────┼│        �?     *       �?�?   ││                             ││        �?     *       �?└──�?││  ┌──inline/blockAnchorOffset││        �?     *       �?     ││  �?    �?                   ││        �?     *       �?     └┤  �? ┌──▼───�?               ││        �?     *       �?      �? �?┌┼──────�?               ││        �?     *       �?      �? └─►│Anchor�?               ││        �?     *       �?      �?   └┴──────�?               ││        �?     *       �?      �?                            ││        �?     *       �?      �?    ┌───────────────────────┼┼────�?  �?     *       �?      �?    �?Surface               ││    �?  �?     *       �?      �?    �?                      ││    �?  �?     *       �?      �?    �?                      ││    �?  �?     *       �?      �?    �?                      ││    �?  �?     *       �?      �?    �?                      ││    �?  �?     *       �?     ┌┼─────┼───────────────────────┼│    �?  �?     *       �?  ┌─►┴──────┼────────────────────────�?   ├┐  �?     *       �?  �?        �?inline/blockOOBCorrection   ││  �?     *       �?  �?        �?                        �?  ││  �?     *       �?  �?        �?                        ├──►├�? �?     *       �?  �?        �?                        �?  ││  �?     *       �?  �?        └────────────────────────┐▼───┼┘  �?     *       �? blockScrollbarHeight                └────�?  �?     *       �?                                              �?     *       └───────────────────────────────────────────────�?     */
+     * │       │                                    │
+     * │     ┌─▼─────┐                              │Document
+     * │    ┌┼───────┴──────────────────────────────┼────────┐
+     * │    ││                                      │        │
+     * └──► ││ ┌───── inline/blockWindowOffset      │        │
+     *      ││ │       │                            ▼        │
+     *      ││ │     ┌─▼───┐                 Window┌┐        │
+     *      └┤ │    ┌┼─────┴───────────────────────┼│        │
+     *       │ │    ││                             ││        │
+     *       │ └──► ││  ┌──inline/blockAnchorOffset││        │
+     *       │      ││  │     │                    ││        │
+     *       │      └┤  │  ┌──▼───┐                ││        │
+     *       │       │  │ ┌┼──────┤                ││        │
+     *       │       │  └─►│Anchor│                ││        │
+     *       │       │    └┴──────┘                ││        │
+     *       │       │                             ││        │
+     *       │       │     ┌───────────────────────┼┼────┐   │
+     *       │       │     │ Surface               ││    │   │
+     *       │       │     │                       ││    │   │
+     *       │       │     │                       ││    │   │
+     *       │       │     │                       ││    │   │
+     *       │       │     │                       ││    │   │
+     *       │      ┌┼─────┼───────────────────────┼│    │   │
+     *       │   ┌─►┴──────┼────────────────────────┘    ├┐  │
+     *       │   │         │ inline/blockOOBCorrection   ││  │
+     *       │   │         │                         │   ││  │
+     *       │   │         │                         ├──►├│  │
+     *       │   │         │                         │   ││  │
+     *       │   │         └────────────────────────┐▼───┼┘  │
+     *       │  blockScrollbarHeight                └────┘   │
+     *       │                                               │
+     *       └───────────────────────────────────────────────┘
+     */
     // Calculate the block positioning properties
     let {
       blockInset,
@@ -17635,9 +17666,11 @@ class ImprovSerial extends EventTarget {
 /** NRL OTA bilingual helper �C reads the language chosen by the main app. */
 const nrlLang = () => {
   try {
-    return localStorage.getItem("nrl_lang") === "zh" ? "zh" : "en";
+    const saved = localStorage.getItem("otaLanguage");
+    if (saved === "zh" || saved === "en") return saved;
+    return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
   } catch {
-    return "en";
+    return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
   }
 };
 /** Return the Chinese string when the UI language is zh, otherwise English. */
@@ -17674,7 +17707,7 @@ const flash = async (onEvent, port, manifestPath, manifest, eraseFirst) => {
   window.esploader = esploader;
   fireStateEvent({
     state: "initializing" /* FlashStateType.INITIALIZING */,
-    message: T("Initializing...", "正在初始�?.."),
+    message: T("Initializing...", "正在初始化..."),
     details: {
       done: false
     }
@@ -17686,7 +17719,7 @@ const flash = async (onEvent, port, manifestPath, manifest, eraseFirst) => {
     console.error(err);
     fireStateEvent({
       state: "error" /* FlashStateType.ERROR */,
-      message: T("Failed to initialize. Try resetting your device or holding the BOOT button while clicking INSTALL.", "初始化失败。请尝试重置设备，或在点击安装时按住 BOOT 按钮�?),
+      message: T("Failed to initialize. Try resetting your device or holding the BOOT button while clicking INSTALL.", "初始化失败。请尝试重置设备，或在点击安装时按住 BOOT 按钮。"),
       details: {
         error: "failed_initialize" /* FlashError.FAILED_INITIALIZING */,
         details: err
@@ -17783,7 +17816,7 @@ const flash = async (onEvent, port, manifestPath, manifest, eraseFirst) => {
     await esploader.eraseFlash();
     fireStateEvent({
       state: "erasing" /* FlashStateType.ERASING */,
-      message: T("Device erased", "设备已擦�?),
+      message: T("Device erased", "设备已擦除"),
       details: {
         done: true
       }
@@ -17854,7 +17887,7 @@ const flash = async (onEvent, port, manifestPath, manifest, eraseFirst) => {
   await transport.disconnect();
   fireStateEvent({
     state: "finished" /* FlashStateType.FINISHED */,
-    message: T("All done!", "全部完成�?)
+    message: T("All done!", "全部完成！")
   });
 };
 
@@ -18007,7 +18040,7 @@ class EwtInstallDialog extends i$2 {
     `;
   }
   _renderError(label) {
-    const heading = "Error";
+    const heading = T("Error", "错误");
     const content = x`
       <ewt-page-message
         slot="content"
@@ -18015,7 +18048,7 @@ class EwtInstallDialog extends i$2 {
         .label=${label}
       ></ewt-page-message>
       <div slot="actions">
-        <ew-text-button @click=${this._closeDialog}>Close</ew-text-button>
+        <ew-text-button @click=${this._closeDialog}>${T("Close", "关闭")}</ew-text-button>
       </div>
     `;
     return [heading, content];
@@ -18028,7 +18061,7 @@ class EwtInstallDialog extends i$2 {
       <div slot="content">
         <ew-list>
           <ew-list-item>
-            <div slot="headline">Connected to ${this._info.name}</div>
+            <div slot="headline">${T("Connected to", "已连接")} ${this._info.name}</div>
             <div slot="supporting-text">
               ${this._info.firmware}&nbsp;${this._info.version}
               (${this._info.chipFamily})
@@ -18049,7 +18082,7 @@ class EwtInstallDialog extends i$2 {
                 >
                   ${listItemInstallIcon}
                   <div slot="headline">
-                    ${!this._isSameFirmware ? `Install ${this._manifest.name}` : `Update ${this._manifest.name}`}
+                    ${!this._isSameFirmware ? T(`Install ${this._manifest.name}`, `安装 ${this._manifest.name}`) : T(`Update ${this._manifest.name}`, `升级 ${this._manifest.name}`)}
                   </div>
                 </ew-list-item>
               ` : ""}
@@ -18060,7 +18093,7 @@ class EwtInstallDialog extends i$2 {
                   target="_blank"
                 >
                   ${listItemVisitDevice}
-                  <div slot="headline">Visit Device</div>
+                  <div slot="headline">${T("Visit Device", "访问设备")}</div>
                 </ew-list-item>
               `}
           ${!this._manifest.home_assistant_domain || this._client.state !== ImprovSerialCurrentState.PROVISIONED ? "" : x`
@@ -18070,7 +18103,7 @@ class EwtInstallDialog extends i$2 {
                   target="_blank"
                 >
                   ${listItemHomeAssistant}
-                  <div slot="headline">Add to Home Assistant</div>
+                  <div slot="headline">${T("Add to Home Assistant", "添加到 Home Assistant")}</div>
                 </ew-list-item>
               `}
           <ew-list-item
@@ -18084,7 +18117,7 @@ class EwtInstallDialog extends i$2 {
           >
             ${listItemWifi}
             <div slot="headline">
-              ${this._client.state === ImprovSerialCurrentState.PROVISIONED ? "Change Wi-Fi" : "Connect to Wi-Fi"}
+              ${this._client.state === ImprovSerialCurrentState.PROVISIONED ? T("Change Wi-Fi", "更换 Wi-Fi") : T("Connect to Wi-Fi", "连接 Wi-Fi")}
             </div>
           </ew-list-item>
           <ew-list-item
@@ -18101,7 +18134,7 @@ class EwtInstallDialog extends i$2 {
     }}
           >
             ${listItemConsole}
-            <div slot="headline">Logs & Console</div>
+            <div slot="headline">${T("Logs & Console", "日志与控制台")}</div>
           </ew-list-item>
           ${this._isSameFirmware && this._manifest.funding_url ? x`
                 <ew-list-item
@@ -18110,7 +18143,7 @@ class EwtInstallDialog extends i$2 {
                   target="_blank"
                 >
                   ${listItemFundDevelopment}
-                  <div slot="headline">Fund Development</div>
+                  <div slot="headline">${T("Fund Development", "资助开发")}</div>
                 </ew-list-item>
               ` : ""}
           ${this._isSameVersion ? x`
@@ -18120,7 +18153,7 @@ class EwtInstallDialog extends i$2 {
                   @click=${() => this._startInstall(true)}
                 >
                   ${listItemEraseUserData}
-                  <div slot="headline">Erase User Data</div>
+                  <div slot="headline">${T("Erase User Data", "擦除用户数据")}</div>
                 </ew-list-item>
               ` : ""}
         </ew-list>
@@ -18147,7 +18180,7 @@ class EwtInstallDialog extends i$2 {
     }}
           >
             ${listItemInstallIcon}
-            <div slot="headline">${`Install ${this._manifest.name}`}</div>
+            <div slot="headline">${T(`Install ${this._manifest.name}`, `安装 ${this._manifest.name}`)}</div>
           </ew-list-item>
           <ew-list-item
             type="button"
@@ -18158,7 +18191,7 @@ class EwtInstallDialog extends i$2 {
     }}
           >
             ${listItemConsole}
-            <div slot="headline">Logs & Console</div>
+            <div slot="headline">${T("Logs & Console", "日志与控制台")}</div>
           </ew-list-item>
         </ew-list>
       </div>
@@ -18167,10 +18200,10 @@ class EwtInstallDialog extends i$2 {
   }
   _renderProvision() {
     var _a;
-    let heading = "Configure Wi-Fi";
+    let heading = T("Configure Wi-Fi", "配置 Wi-Fi");
     let content;
     if (this._busy) {
-      return [heading, this._renderProgress("Trying to connect")];
+      return [heading, this._renderProgress(T("Trying to connect", "正在连接"))];
     }
     if (this._client.state === ImprovSerialCurrentState.STOPPED) {
       heading = undefined;
@@ -18178,9 +18211,7 @@ class EwtInstallDialog extends i$2 {
         <div slot="content">
           <ewt-page-message
             .icon=${ERROR_ICON}
-            .label=${x`The connected device has Wi-Fi turned off, so it can't
-              be configured right now.<br />Enable the device's Wi-Fi, then try
-              again.`}
+            .label=${x`${T("The connected device has Wi-Fi turned off, so it can't be configured right now. Enable the device's Wi-Fi, then try again.", "当前设备的 Wi-Fi 已关闭，无法配置。请开启设备 Wi-Fi 后重试。")}`}
           ></ewt-page-message>
         </div>
         <div slot="actions">
@@ -18189,7 +18220,7 @@ class EwtInstallDialog extends i$2 {
         this._state = "DASHBOARD";
       }}
           >
-            Back
+            ${T("Back", "返回")}
           </ew-text-button>
         </div>
       `;
@@ -18200,7 +18231,7 @@ class EwtInstallDialog extends i$2 {
         <div slot="content">
           <ewt-page-message
             .icon=${OK_ICON}
-            label="Device connected to the network!"
+            .label=${T("Device connected to the network!", "设备已连接到网络！")}
           ></ewt-page-message>
           ${showSetupLinks ? x`
                 <ew-list>
@@ -18214,7 +18245,7 @@ class EwtInstallDialog extends i$2 {
       }}
                         >
                           ${listItemVisitDevice}
-                          <div slot="headline">Visit Device</div>
+                          <div slot="headline">${T("Visit Device", "访问设备")}</div>
                         </ew-list-item>
                       `}
                   ${!this._manifest.home_assistant_domain ? "" : x`
@@ -18227,7 +18258,7 @@ class EwtInstallDialog extends i$2 {
       }}
                         >
                           ${listItemHomeAssistant}
-                          <div slot="headline">Add to Home Assistant</div>
+                          <div slot="headline">${T("Add to Home Assistant", "添加到 Home Assistant")}</div>
                         </ew-list-item>
                       `}
                   <ew-list-item
@@ -18237,7 +18268,7 @@ class EwtInstallDialog extends i$2 {
       }}
                   >
                     <div slot="start" class="fake-icon"></div>
-                    <div slot="headline">Skip</div>
+                    <div slot="headline">${T("Skip", "跳过")}</div>
                   </ew-list-item>
                 </ew-list>
               ` : ""}
@@ -18250,39 +18281,39 @@ class EwtInstallDialog extends i$2 {
         this._state = "DASHBOARD";
       }}
                 >
-                  Continue
+                  ${T("Continue", "继续")}
                 </ew-text-button>
               </div>
             ` : ""}
       `;
     } else if (this._ssids === undefined) {
       // Waiting for the first scan to come back.
-      content = this._renderProgress("Scanning for networks");
+      content = this._renderProgress(T("Scanning for networks", "正在扫描网络"));
     } else {
       let error;
       switch (this._client.error) {
         case 3 /* ImprovSerialErrorState.UNABLE_TO_CONNECT */:
-          error = "Unable to connect";
+          error = T("Unable to connect", "无法连接");
           break;
         case 254 /* ImprovSerialErrorState.TIMEOUT */:
-          error = "Timeout";
+          error = T("Timeout", "超时");
           break;
         case 0 /* ImprovSerialErrorState.NO_ERROR */:
         // Happens when list SSIDs not supported.
         case 2 /* ImprovSerialErrorState.UNKNOWN_RPC_COMMAND */:
           break;
         default:
-          error = `Unknown error (${this._client.error})`;
+          error = T(`Unknown error (${this._client.error})`, `未知错误 (${this._client.error})`);
       }
       const selectedSsid = (_a = this._ssids) === null || _a === void 0 ? void 0 : _a.find(info => info.name === this._selectedSsid);
       content = x`
         <div slot="content">
-          <div>Connect your device to the network to start using it.</div>
+          <div>${T("Connect your device to the network to start using it.", "将设备连接到网络以开始使用。")}</div>
           ${error ? x`<p class="error">${error}</p>` : ""}
           ${this._ssids !== null ? x`
                 <ew-filled-select
                   menu-positioning="fixed"
-                  label="Network"
+                  .label=${T("Network", "网络")}
                   @change=${ev => {
         const index = ev.target.selectedIndex;
         // The "Join Other" item is always the last item.
@@ -18315,21 +18346,22 @@ class EwtInstallDialog extends i$2 {
       })}
                   <ew-divider></ew-divider>
                   <ew-select-option .selected=${!selectedSsid}>
-                    Join other�?                  </ew-select-option>
+                    ${T("Join other…", "加入其他…")}
+                  </ew-select-option>
                 </ew-filled-select>
               ` : ""}
           ${
       // Show input box if command not supported or "Join Other" selected
       !selectedSsid ? x`
                   <ew-filled-text-field
-                    label="Network Name"
+                    .label=${T("Network Name", "网络名称")}
                     name="ssid"
                     .value=${this._manualSsid}
                   ></ew-filled-text-field>
                 ` : ""}
           ${!selectedSsid || selectedSsid.secured ? x`
                 <ew-filled-text-field
-                  label="Password"
+                  .label=${T("Password", "密码")}
                   name="password"
                   type="password"
                   @keydown=${ev => {
@@ -18346,25 +18378,24 @@ class EwtInstallDialog extends i$2 {
         this._state = "DASHBOARD";
       }}
           >
-            ${this._installState && this._installErase ? "Skip" : "Back"}
+            ${this._installState && this._installErase ? T("Skip", "跳过") : T("Back", "返回")}
           </ew-text-button>
-          <ew-text-button @click=${this._doProvision}>Connect</ew-text-button>
+          <ew-text-button @click=${this._doProvision}>${T("Connect", "连接")}</ew-text-button>
         </div>
       `;
     }
     return [heading, content];
   }
   _renderAskErase() {
-    const heading = "Erase device";
+    const heading = T("Erase device", "擦除设备");
     const content = x`
       <div slot="content">
         <div>
-          Do you want to erase the device before installing
-          ${this._manifest.name}? All data on the device will be lost.
+          ${T("Do you want to erase the device before installing", "是否在安装前擦除设备")} ${this._manifest.name}？${T("All data on the device will be lost.", "设备上的所有数据将丢失。")}
         </div>
         <label class="formfield">
           <ew-checkbox touch-target="wrapper" class="danger"></ew-checkbox>
-          Erase device
+          ${T("Erase device", "擦除设备")}
         </label>
       </div>
       <div slot="actions">
@@ -18373,7 +18404,7 @@ class EwtInstallDialog extends i$2 {
       this._state = "DASHBOARD";
     }}
         >
-          Back
+          ${T("Back", "返回")}
         </ew-text-button>
         <ew-text-button
           @click=${() => {
@@ -18381,7 +18412,7 @@ class EwtInstallDialog extends i$2 {
       this._startInstall(checkbox.checked);
     }}
         >
-          Next
+          ${T("Next", "下一步")}
         </ew-text-button>
       </div>
     `;
@@ -18393,28 +18424,27 @@ class EwtInstallDialog extends i$2 {
     const allowClosing = false;
     const isUpdate = !this._installErase && this._isSameFirmware;
     if (!this._installConfirmed && this._isSameVersion) {
-      heading = "Erase User Data";
+      heading = T("Erase User Data", "擦除用户数据");
       content = x`
         <div slot="content">
-          Do you want to reset your device and erase all user data from your
-          device?
+          ${T("Do you want to reset your device and erase all user data from your device?", "是否重置设备并擦除所有用户数据？")}
         </div>
         <div slot="actions">
           <ew-text-button class="danger" @click=${this._confirmInstall}>
-            Erase User Data
+            ${T("Erase User Data", "擦除用户数据")}
           </ew-text-button>
         </div>
       `;
     } else if (!this._installConfirmed) {
-      heading = "Confirm Installation";
-      const action = isUpdate ? "update to" : "install";
+      heading = T("Confirm Installation", "确认安装");
+      const action = isUpdate ? T("update to", "升级到") : T("install", "安装");
       content = x`
         <div slot="content">
-          ${isUpdate ? x`Your device is running
-                ${this._info.firmware}&nbsp;${this._info.version}.<br /><br />` : ""}
-          Do you want to ${action}
-          ${this._manifest.name}&nbsp;${this._manifest.version}?
-          ${this._installErase ? x`<br /><br />All data on the device will be erased.` : ""}
+          ${isUpdate ? x`${T("Your device is running", "当前设备运行")}
+                ${this._info.firmware}&nbsp;${this._info.version}。<br /><br />` : ""}
+          ${T("Do you want to", "是否要")} ${action}
+          ${this._manifest.name}&nbsp;${this._manifest.version}？
+          ${this._installErase ? x`<br /><br />${T("All data on the device will be erased.", "设备上的所有数据将被擦除。")}` : ""}
         </div>
         <div slot="actions">
           <ew-text-button
@@ -18422,32 +18452,32 @@ class EwtInstallDialog extends i$2 {
         this._state = "DASHBOARD";
       }}
           >
-            Back
+            ${T("Back", "返回")}
           </ew-text-button>
           <ew-text-button @click=${this._confirmInstall}>
-            Install
+            ${T("Install", "安装")}
           </ew-text-button>
         </div>
       `;
     } else if (!this._installState || this._installState.state === "initializing" /* FlashStateType.INITIALIZING */ || this._installState.state === "preparing" /* FlashStateType.PREPARING */) {
-      heading = "Installing";
-      content = this._renderProgress("Preparing installation");
+      heading = T("Installing", "正在安装");
+      content = this._renderProgress(T("Preparing installation", "正在准备安装"));
     } else if (this._installState.state === "erasing" /* FlashStateType.ERASING */) {
-      heading = "Installing";
-      content = this._renderProgress("Erasing");
+      heading = T("Installing", "正在安装");
+      content = this._renderProgress(T("Erasing", "正在擦除"));
     } else if (this._installState.state === "writing" /* FlashStateType.WRITING */ ||
     // When we're finished, keep showing this screen with 100% written
     // until Improv is initialized / not detected.
     this._installState.state === "finished" /* FlashStateType.FINISHED */ && this._client === undefined) {
-      heading = "Installing";
+      heading = T("Installing", "正在安装");
       let percentage;
       let undeterminateLabel;
       if (this._installState.state === "finished" /* FlashStateType.FINISHED */) {
         // We're done writing and detecting improv, show spinner
-        undeterminateLabel = "Wrapping up";
+        undeterminateLabel = T("Wrapping up", "正在完成");
       } else if (this._installState.details.percentage < 4) {
         // We're writing the firmware under 4%, show spinner or else we don't show any pixels
-        undeterminateLabel = "Installing";
+        undeterminateLabel = T("Installing", "正在安装");
       } else {
         // We're writing the firmware over 4%, show progress bar
         percentage = this._installState.details.percentage;
@@ -18455,9 +18485,9 @@ class EwtInstallDialog extends i$2 {
       content = this._renderProgress(x`
           ${undeterminateLabel ? x`${undeterminateLabel}<br />` : ""}
           <br />
-          This will take
-          ${this._installState.chipFamily === "ESP8266" ? "a minute" : "2 minutes"}.<br />
-          Keep this page visible for fastest installation.
+          ${T("This will take", "预计需要")}
+          ${this._installState.chipFamily === "ESP8266" ? T("a minute", "1 分钟") : T("2 minutes", "2 分钟")}。<br />
+          ${T("Keep this page visible for fastest installation.", "请保持此页面可见以获得最快安装速度。")}
         `, percentage);
     } else if (this._installState.state === "finished" /* FlashStateType.FINISHED */) {
       heading = undefined;
@@ -18466,7 +18496,7 @@ class EwtInstallDialog extends i$2 {
         <ewt-page-message
           slot="content"
           .icon=${OK_ICON}
-          label="Installation complete!"
+          .label=${T("Installation complete!", "安装完成！")}
         ></ewt-page-message>
 
         <div slot="actions">
@@ -18475,12 +18505,12 @@ class EwtInstallDialog extends i$2 {
         this._state = supportsImprov && this._installErase ? "PROVISION" : "DASHBOARD";
       }}
           >
-            Next
+            ${T("Next", "下一步")}
           </ew-text-button>
         </div>
       `;
     } else if (this._installState.state === "error" /* FlashStateType.ERROR */) {
-      heading = "Installation failed";
+      heading = T("Installation failed", "安装失败");
       content = x`
         <ewt-page-message
           slot="content"
@@ -18494,7 +18524,7 @@ class EwtInstallDialog extends i$2 {
         this._state = "DASHBOARD";
       }}
           >
-            Back
+            ${T("Back", "返回")}
           </ew-text-button>
         </div>
       `;
@@ -18502,7 +18532,7 @@ class EwtInstallDialog extends i$2 {
     return [heading, content, allowClosing];
   }
   _renderLogs() {
-    let heading = `Logs`;
+    let heading = T("Logs", "日志");
     let content;
     content = x`
       <div slot="content">
@@ -18514,7 +18544,7 @@ class EwtInstallDialog extends i$2 {
       await this.shadowRoot.querySelector("ewt-console").reset();
     }}
         >
-          Reset Device
+          ${T("Reset Device", "重置设备")}
         </ew-text-button>
         <ew-text-button
           @click=${() => {
@@ -18522,7 +18552,7 @@ class EwtInstallDialog extends i$2 {
       this.shadowRoot.querySelector("ewt-console").reset();
     }}
         >
-          Download Logs
+          ${T("Download Logs", "下载日志")}
         </ew-text-button>
         <ew-text-button
           @click=${async () => {
@@ -18531,7 +18561,7 @@ class EwtInstallDialog extends i$2 {
       this._initialize();
     }}
         >
-          Back
+          ${T("Back", "返回")}
         </ew-text-button>
       </div>
     `;
@@ -18743,7 +18773,7 @@ class EwtInstallDialog extends i$2 {
   async _doProvision() {
     var _a;
     // Read the form before setting `_busy`: that swaps the form for a progress
-    // view, and the render happens during any await below �?after which these
+    // view, and the render happens during any await below — after which these
     // fields no longer exist and we'd provision with an empty password.
     const ssid = this._selectedSsid === null ? this.shadowRoot.querySelector("ew-filled-text-field[name=ssid]").value : this._selectedSsid;
     const password = ((_a = this.shadowRoot.querySelector("ew-filled-text-field[name=password]")) === null || _a === void 0 ? void 0 : _a.value) || "";

@@ -1,4 +1,17 @@
-import { w as b, y as dialogStyles, a as i, _ as __decorate, t, i as i$1, x } from './styles.js';
+import { w as b, y as dialogStyles, a as i, _ as __decorate, t, i as i$1, x } from './styles.js?v=4';
+
+/** NRL OTA bilingual helper – reads the language chosen by the main app. */
+const nrlLang = () => {
+  try {
+    const saved = localStorage.getItem("otaLanguage");
+    if (saved === "zh" || saved === "en") return saved;
+    return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+  } catch {
+    return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+  }
+};
+/** Return the Chinese string when the UI language is zh, otherwise English. */
+const T = (en, zh) => nrlLang() === "zh" ? zh : en;
 
 // From https://stackoverflow.com/a/38241481
 const getOperatingSystem = () => {
@@ -49,40 +62,32 @@ let EwtNoPortPickedDialog = class EwtNoPortPickedDialog extends i$1 {
     const OS = getOperatingSystem();
     return x`
       <ew-dialog open @closed=${this._handleClose}>
-        <div slot="headline">No port selected</div>
+        <div slot="headline">${T("No port selected", "未选择端口")}</div>
         <div slot="content">
           <div>
-            If you didn't select a port because you didn't see your device
-            listed, try the following steps:
+            ${T("If you didn't select a port because you didn't see your device listed, try the following steps:", "如果您因为未看到设备而未选择端口，请尝试以下步骤：")}
           </div>
           <ol>
             <li>
-              Make sure that the device is connected to this computer (the one
-              that runs the browser that shows this website)
+              ${T("Make sure that the device is connected to this computer (the one that runs the browser that shows this website)", "确保设备已连接到当前运行浏览器的电脑")}
             </li>
             <li>
-              Most devices have a tiny light when it is powered on. If yours has
-              one, make sure it is on.
+              ${T("Most devices have a tiny light when it is powered on. If yours has one, make sure it is on.", "大多数设备通电后会有指示灯亮起，请确认指示灯已亮。")}
             </li>
             <li>
-              Make sure that the USB cable you use can be used for data and is
-              not a power-only cable.
+              ${T("Make sure that the USB cable you use can be used for data and is not a power-only cable.", "确保使用的 USB 线缆支持数据传输，而非仅充电线。")}
             </li>
             ${OS === "Linux" ? x`
                   <li>
-                    If you are using a Linux flavor, make sure that your user is
-                    part of the <code>dialout</code> group so it has permission
-                    to access the device.
+                    ${T("If you are using a Linux flavor, make sure that your user is part of the dialout group so it has permission to access the device.", "如果使用 Linux 系统，请确保当前用户属于 dialout 组以获取设备访问权限。")}
                     <code class="block"
                       >sudo usermod -a -G dialout YourUserName</code
                     >
-                    You may need to log out & back in or reboot to activate the
-                    new group access.
+                    ${T("You may need to log out & back in or reboot to activate the new group access.", "可能需要注销重新登录或重启以激活新的组权限。")}
                   </li>
                 ` : ""}
             <li>
-              Make sure you have the right drivers installed. Below are the
-              drivers for common chips used in ESP devices:
+              ${T("Make sure you have the right drivers installed. Below are the drivers for common chips used in ESP devices:", "确保已安装正确的驱动程序。以下是 ESP 设备常用芯片的驱动：")}
               <ul>
                 <li>
                   CP2102 drivers:
@@ -108,7 +113,7 @@ let EwtNoPortPickedDialog = class EwtNoPortPickedDialog extends i$1 {
                     >Mac</a
                   >
                   <br />
-                  (download via blue button with ${cloudDownload} icon)
+                  ${T("(download via blue button with", "(通过蓝色")} ${cloudDownload} ${T("icon)", "图标的按钮下载")}
                 </li>
                 <li>
                   CH340, CH341 drivers:
@@ -133,12 +138,12 @@ let EwtNoPortPickedDialog = class EwtNoPortPickedDialog extends i$1 {
         </div>
         <div slot="actions">
           ${this.doTryAgain ? x`
-                <ew-text-button @click=${this.close}>Cancel</ew-text-button>
+                <ew-text-button @click=${this.close}>${T("Cancel", "取消")}</ew-text-button>
                 <ew-text-button @click=${this.tryAgain}>
-                  Try Again
+                  ${T("Try Again", "重试")}
                 </ew-text-button>
               ` : x`
-                <ew-text-button @click=${this.close}>Close</ew-text-button>
+                <ew-text-button @click=${this.close}>${T("Close", "关闭")}</ew-text-button>
               `}
         </div>
       </ew-dialog>

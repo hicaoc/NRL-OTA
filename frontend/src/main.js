@@ -1,4 +1,4 @@
-﻿// The full esm-bundler build (not the runtime-only default) is required because
+// The full esm-bundler build (not the runtime-only default) is required because
 // the app below uses an inline `template` string, which needs Vue's runtime
 // template compiler. Without it the app never renders and the page is stuck on
 // the "Loading NRL OTA…" fallback.
@@ -840,7 +840,9 @@ const app = createApp({
         highlights_zh_text: (entry.highlights_zh || []).join("\n"),
         highlights_en_text: (entry.highlights_en || []).join("\n"),
         features: { ...entry.features },
-        feature_notes: structuredClone(entry.feature_notes || {}),
+        // entry is a Vue reactive proxy, which structuredClone rejects with
+        // DataCloneError; a JSON round-trip also strips reactivity.
+        feature_notes: JSON.parse(JSON.stringify(entry.feature_notes || {})),
       };
       for (const f of catalogFeatures.value) {
         boardEditor.value.feature_notes[f.key] ||= { zh: "", en: "" };

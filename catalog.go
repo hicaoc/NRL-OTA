@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"crypto/sha256"
@@ -132,6 +132,45 @@ func migrateCatalog(db *sql.DB) error {
 		_, _ = db.Exec(`UPDATE board_features SET state='yes' WHERE feature_key='web_flash' AND board_id IN ('s31_korvo','s31_function_coreboard') AND state='no'`)
 		_, _ = db.Exec(`INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(2,?)`, time.Now().Unix())
 	}
+	if ver < 3 {
+		// v3: CW training, APRS tile map and SSTV catalog features. Assignments
+		// use a boards-table guard so boards that only exist on some
+		// deployments (e.g. bi4umd added via the admin UI) are simply skipped.
+		type featV3 struct {
+			key, zh, en string
+			order       int
+		}
+		for _, f := range []featV3{
+			{"aprs_map", "APRS 瓦片地图（TF 离线 / 在线）", "APRS tile map (TF offline / online)", 41},
+			{"sstv", "SSTV 慢扫描图像收发", "SSTV slow-scan image TX/RX", 42},
+			{"cwdecode", "CW 莫尔斯电码收发与训练", "CW Morse code TX/RX and training", 71},
+		} {
+			_, _ = db.Exec(`INSERT OR IGNORE INTO features(key,label_zh,label_en,display_order,active) VALUES(?,?,?,?,1)`, f.key, f.zh, f.en, f.order)
+			_, _ = db.Exec(`UPDATE features SET label_zh=?,label_en=?,display_order=?,active=1 WHERE key=?`, f.zh, f.en, f.order, f.key)
+		}
+		type assignV3 struct{ board, key, state, noteZH, noteEN string }
+		for _, a := range []assignV3{
+			{"gezipai", "cwdecode", "yes", "", ""},
+			{"bh4tdv", "cwdecode", "partial", "AT+CW 配置与解码，无屏幕界面", "AT+CW config and decode, no display UI"},
+			{"s31_korvo", "cwdecode", "yes", "", ""},
+			{"s31_function_coreboard", "cwdecode", "partial", "AT+CW 配置与解码，无屏幕界面", "AT+CW config and decode, no display UI"},
+			{"bi4umd", "cwdecode", "yes", "", ""},
+			{"gezipai", "aprs_map", "no", "", ""},
+			{"bh4tdv", "aprs_map", "no", "", ""},
+			{"s31_korvo", "aprs_map", "yes", "", ""},
+			{"s31_function_coreboard", "aprs_map", "no", "", ""},
+			{"bi4umd", "aprs_map", "yes", "", ""},
+			{"gezipai", "sstv", "no", "", ""},
+			{"bh4tdv", "sstv", "no", "", ""},
+			{"s31_korvo", "sstv", "yes", "", ""},
+			{"s31_function_coreboard", "sstv", "partial", "AT+SSTV 命令收发，无屏幕界面", "AT+SSTV command TX/RX, no display UI"},
+			{"bi4umd", "sstv", "yes", "触屏发送页面，AT 命令接收", "Touch TX page, AT command RX"},
+		} {
+			_, _ = db.Exec(`INSERT OR REPLACE INTO board_features(board_id,feature_key,state,note_zh,note_en)
+				SELECT id,?,?,?,? FROM boards WHERE id=?`, a.key, a.state, a.noteZH, a.noteEN, a.board)
+		}
+		_, _ = db.Exec(`INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(3,?)`, time.Now().Unix())
+	}
 	return nil
 }
 
@@ -166,9 +205,12 @@ func seedCatalog(db *sql.DB) error {
 		{"wifi_portal", "Wi-Fi 配置门户 / SoftAP 配网", "Wi-Fi configuration portal / SoftAP provisioning", allBoards("yes")},
 		{"remote_at_ota", "远程 AT 配置与设备 OTA 升级", "Remote AT configuration and device OTA", allBoards("yes")},
 		{"aprs", "APRS-IS 网络与无线电 AFSK 收发", "APRS-IS networking and radio AFSK TX/RX", allBoards("yes")},
+		{"aprs_map", "APRS 瓦片地图（TF 离线 / 在线）", "APRS tile map (TF offline / online)", states("no", "no", "yes", "no")},
+		{"sstv", "SSTV 慢扫描图像收发", "SSTV slow-scan image TX/RX", states("no", "no", "yes", "partial")},
 		{"mdc1200", "MDC1200 信令编码与解码", "MDC1200 signaling encode/decode", allBoards("yes")},
 		{"dtmf", "DTMF 信令编码与解码", "DTMF signaling encode/decode", allBoards("yes")},
 		{"ctcss", "CTCSS/PL 亚音频率识别", "CTCSS/PL tone-frequency detection", allBoards("yes")},
+		{"cwdecode", "CW 莫尔斯电码收发与训练", "CW Morse code TX/RX and training", states("yes", "partial", "yes", "partial")},
 		{"screen_signaling", "屏幕信令与 APRS 设置菜单", "On-screen signaling and APRS settings", states("yes", "no", "partial", "no")},
 		{"web_flash", "网页 USB 首次全量刷机", "Browser USB full flashing", states("yes", "yes", "yes", "yes")},
 		{"ble", "BLE 蓝牙配网", "BLE provisioning", states("yes", "yes", "no", "no")},

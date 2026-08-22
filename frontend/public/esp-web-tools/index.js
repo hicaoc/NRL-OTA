@@ -1,4 +1,4 @@
-import { w as b, y as dialogStyles, a as i, _ as __decorate, t, i as i$1, x } from './styles.js?v=4';
+import { w as b, y as dialogStyles, a as i, _ as __decorate, t, i as i$1, x } from './styles.js?v=5';
 
 /** NRL OTA bilingual helper – reads the language chosen by the main app. */
 const nrlLang = () => {

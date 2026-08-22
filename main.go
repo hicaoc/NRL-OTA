@@ -1,4 +1,4 @@
-﻿// NRL OTA server: Go API + SQLite registry. The Vue frontend is deployed separately.
+// NRL OTA server: Go API + SQLite registry. The Vue frontend is deployed separately.
 package main
 
 import (
@@ -56,6 +56,42 @@ type packageMeta struct {
 	AppOffset  int64         `json:"app_offset"`
 	Parts      []packagePart `json:"parts"`
 }
+
+// canonicalChipFamily converts common esptool spellings to the exact values
+// required by esp-web-tools manifests. Browser-side matching is case-sensitive.
+func canonicalChipFamily(value string) string {
+	trimmed := strings.TrimSpace(value)
+	key := strings.NewReplacer("-", "", "_", "", " ", "").Replace(strings.ToUpper(trimmed))
+	switch key {
+	case "ESP8266":
+		return "ESP8266"
+	case "ESP32":
+		return "ESP32"
+	case "ESP32S2":
+		return "ESP32-S2"
+	case "ESP32S3":
+		return "ESP32-S3"
+	case "ESP32S31":
+		return "ESP32-S31"
+	case "ESP32C2":
+		return "ESP32-C2"
+	case "ESP32C3":
+		return "ESP32-C3"
+	case "ESP32C5":
+		return "ESP32-C5"
+	case "ESP32C6":
+		return "ESP32-C6"
+	case "ESP32C61":
+		return "ESP32-C61"
+	case "ESP32H2":
+		return "ESP32-H2"
+	case "ESP32P4":
+		return "ESP32-P4"
+	default:
+		return trimmed
+	}
+}
+
 type release struct {
 	Version   string `json:"version"`
 	Channel   string `json:"channel"`
@@ -581,7 +617,7 @@ func (s *server) serveFlasher(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "no web-flashable package for this board")
 		return
 	}
-	chipFamily := meta.ChipFamily
+	chipFamily := canonicalChipFamily(meta.ChipFamily)
 	if chipFamily == "" {
 		chipFamily, _ = s.boardChipFamily(board)
 	}
@@ -639,6 +675,7 @@ func (s *server) uploadPackage(w http.ResponseWriter, r *http.Request) {
 	if meta.Channel == "" {
 		meta.Channel = "stable"
 	}
+	meta.ChipFamily = canonicalChipFamily(meta.ChipFamily)
 	if !validName.MatchString(meta.Board) || !validName.MatchString(meta.Version) ||
 		(meta.Channel != "stable" && meta.Channel != "beta") || len(meta.Parts) == 0 {
 		writeError(w, 400, "invalid board, version, channel or parts")

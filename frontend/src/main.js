@@ -1124,7 +1124,7 @@ const app = createApp({
       if (document.querySelector("script[data-esp-web-tools]")) return;
       const script = document.createElement("script");
       script.type = "module";
-      script.src = "/esp-web-tools/install-button.js?v=4";
+      script.src = "/esp-web-tools/install-button.js?v=5";
       script.dataset.espWebTools = "1";
       document.head.appendChild(script);
     }

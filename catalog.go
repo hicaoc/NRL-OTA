@@ -318,7 +318,7 @@ func (s *server) boardChipFamily(id string) (string, bool) {
 	if err := s.db.QueryRow(`SELECT web_flash_chip_family FROM boards WHERE id=?`, id).Scan(&family); err != nil {
 		return "", false
 	}
-	return family, true
+	return canonicalChipFamily(family), true
 }
 
 func (s *server) publicCatalog(w http.ResponseWriter, _ *http.Request) {
@@ -433,6 +433,7 @@ func (s *server) loadCatalog(includeInactive bool) (catalogResponse, error) {
 			rows.Close()
 			return out, err
 		}
+		b.WebFlashChipFamily = canonicalChipFamily(b.WebFlashChipFamily)
 		_ = json.Unmarshal([]byte(zh), &b.HighlightsZH)
 		_ = json.Unmarshal([]byte(en), &b.HighlightsEN)
 		b.Features = map[string]string{}
@@ -479,6 +480,7 @@ func validateBoard(b *boardCatalogEntry, creating bool) error {
 	if b.Status != "draft" && b.Status != "published" && b.Status != "archived" {
 		return errors.New("status must be draft, published or archived")
 	}
+	b.WebFlashChipFamily = canonicalChipFamily(b.WebFlashChipFamily)
 	if len(b.HighlightsZH) > 12 || len(b.HighlightsEN) > 12 {
 		return errors.New("too many board highlights")
 	}

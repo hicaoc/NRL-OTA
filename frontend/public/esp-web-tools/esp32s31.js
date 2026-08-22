@@ -1,9 +1,9 @@
-import { ESP32C5ROM } from './esp32c5.js?v=4';
-import './esp32c6.js?v=4';
-import './esp32c3.js?v=4';
-import './esp32.js?v=4';
-import './install-dialog.js?v=4';
-import './styles.js?v=4';
+import { ESP32C5ROM } from './esp32c5.js?v=5';
+import './esp32c6.js?v=5';
+import './esp32c3.js?v=5';
+import './esp32.js?v=5';
+import './install-dialog.js?v=5';
+import './styles.js?v=5';
 
 class ESP32S31ROM extends ESP32C5ROM {
   constructor() {

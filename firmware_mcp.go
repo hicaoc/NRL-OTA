@@ -423,6 +423,7 @@ func (s *server) receiveStagedFirmwarePackage(r *http.Request, dir string, expec
 	if meta.Channel == "" {
 		meta.Channel = "stable"
 	}
+	meta.ChipFamily = canonicalChipFamily(meta.ChipFamily)
 	if meta.Board != expected.Board || meta.Version != expected.Version || meta.Channel != expected.Channel {
 		return meta, "", "", 0, firmwareUploadError(http.StatusBadRequest, "package metadata does not match the upload session")
 	}

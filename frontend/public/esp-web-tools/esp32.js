@@ -1,5 +1,5 @@
-import { R as ROM } from './install-dialog.js?v=4';
-import './styles.js?v=4';
+import { R as ROM } from './install-dialog.js?v=5';
+import './styles.js?v=5';
 
 class ESP32ROM extends ROM {
   constructor() {

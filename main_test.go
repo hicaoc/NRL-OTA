@@ -18,6 +18,22 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func TestCanonicalChipFamily(t *testing.T) {
+	tests := map[string]string{
+		"esp32s3":    "ESP32-S3",
+		"ESP32_S3":   "ESP32-S3",
+		" ESP32-S3 ": "ESP32-S3",
+		"esp32s31":   "ESP32-S31",
+		"custom":     "custom",
+		"":           "",
+	}
+	for input, want := range tests {
+		if got := canonicalChipFamily(input); got != want {
+			t.Errorf("canonicalChipFamily(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
 func TestUploadPackageUpgradesMatchingAppOnlyRelease(t *testing.T) {
 	dataDir := t.TempDir()
 	firmwareDir := filepath.Join(dataDir, "firmware")

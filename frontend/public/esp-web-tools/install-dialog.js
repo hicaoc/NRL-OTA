@@ -1,4 +1,4 @@
-import { e as e$1, _ as __decorate, o as o$2, i as i$2, x, a as i$3, n as n$3, t, m as mixinDelegatesAria, b as e$2, E, c as e$3, s as styles$g, D as Divider, d as internals, f as mixinElementInternals, r as r$1, g as isActivationClick, h as dispatchActivationClick, j as redispatchEvent, k as setupFormSubmitter, B, l as EASING, p as e$4, q as i$4, u as t$1, T as T$1, v as createAnimationSignal, w as b, y as dialogStyles } from './styles.js?v=4';
+import { e as e$1, _ as __decorate, o as o$2, i as i$2, x, a as i$3, n as n$3, t, m as mixinDelegatesAria, b as e$2, E, c as e$3, s as styles$g, D as Divider, d as internals, f as mixinElementInternals, r as r$1, g as isActivationClick, h as dispatchActivationClick, j as redispatchEvent, k as setupFormSubmitter, B, l as EASING, p as e$4, q as i$4, u as t$1, T as T$1, v as createAnimationSignal, w as b, y as dialogStyles } from './styles.js?v=5';
 
 /**
  * @license
@@ -8912,8 +8912,8 @@ class UsbJtagSerialReset {
     await this.transport.setDTR(false);
     await this.transport.setRTS(true);
     await sleep(100);
-    await this.transport.setRTS(false);
     await this.transport.setDTR(false);
+    await this.transport.setRTS(false);
   }
 }
 /**
@@ -9065,44 +9065,44 @@ async function getStubJsonByChipName(chipName, chipRevision) {
   let jsonStub;
   switch (chipName) {
     case "ESP32":
-      jsonStub = await import('./stub_flasher_32.js?v=4');
+      jsonStub = await import('./stub_flasher_32.js?v=5');
       break;
     case "ESP32-C2":
-      jsonStub = await import('./stub_flasher_32c2.js?v=4');
+      jsonStub = await import('./stub_flasher_32c2.js?v=5');
       break;
     case "ESP32-C3":
-      jsonStub = await import('./stub_flasher_32c3.js?v=4');
+      jsonStub = await import('./stub_flasher_32c3.js?v=5');
       break;
     case "ESP32-C5":
-      jsonStub = await import('./stub_flasher_32c5.js?v=4');
+      jsonStub = await import('./stub_flasher_32c5.js?v=5');
       break;
     case "ESP32-C6":
-      jsonStub = await import('./stub_flasher_32c6.js?v=4');
+      jsonStub = await import('./stub_flasher_32c6.js?v=5');
       break;
     case "ESP32-C61":
-      jsonStub = await import('./stub_flasher_32c61.js?v=4');
+      jsonStub = await import('./stub_flasher_32c61.js?v=5');
       break;
     case "ESP32-H2":
-      jsonStub = await import('./stub_flasher_32h2.js?v=4');
+      jsonStub = await import('./stub_flasher_32h2.js?v=5');
       break;
     case "ESP32-P4":
       if (chipRevision && chipRevision < 300) {
-        jsonStub = await import('./stub_flasher_32p4rc1.js?v=4');
+        jsonStub = await import('./stub_flasher_32p4rc1.js?v=5');
       } else {
-        jsonStub = await import('./stub_flasher_32p4.js?v=4');
+        jsonStub = await import('./stub_flasher_32p4.js?v=5');
       }
       break;
     case "ESP32-S2":
-      jsonStub = await import('./stub_flasher_32s2.js?v=4');
+      jsonStub = await import('./stub_flasher_32s2.js?v=5');
       break;
     case "ESP32-S3":
-      jsonStub = await import('./stub_flasher_32s3.js?v=4');
+      jsonStub = await import('./stub_flasher_32s3.js?v=5');
       break;
     case "ESP32-S31":
-      jsonStub = await import('./stub_flasher_32s31.js?v=4');
+      jsonStub = await import('./stub_flasher_32s31.js?v=5');
       break;
     case "ESP8266":
-      jsonStub = await import('./stub_flasher_8266.js?v=4');
+      jsonStub = await import('./stub_flasher_8266.js?v=5');
       break;
   }
   if (jsonStub) {
@@ -10102,63 +10102,63 @@ async function chipId2Chip(chipId) {
       {
         const {
           ESP32C3ROM
-        } = await import('./esp32c3.js?v=4');
+        } = await import('./esp32c3.js?v=5');
         return new ESP32C3ROM();
       }
     case 9:
       {
         const {
           ESP32S3ROM
-        } = await import('./esp32s3.js?v=4');
+        } = await import('./esp32s3.js?v=5');
         return new ESP32S3ROM();
       }
     case 12:
       {
         const {
           ESP32C2ROM
-        } = await import('./esp32c2.js?v=4');
+        } = await import('./esp32c2.js?v=5');
         return new ESP32C2ROM();
       }
     case 13:
       {
         const {
           ESP32C6ROM
-        } = await import('./esp32c6.js?v=4');
+        } = await import('./esp32c6.js?v=5');
         return new ESP32C6ROM();
       }
     case 16:
       {
         const {
           ESP32H2ROM
-        } = await import('./esp32h2.js?v=4');
+        } = await import('./esp32h2.js?v=5');
         return new ESP32H2ROM();
       }
     case 18:
       {
         const {
           ESP32P4ROM
-        } = await import('./esp32p4.js?v=4');
+        } = await import('./esp32p4.js?v=5');
         return new ESP32P4ROM();
       }
     case 20:
       {
         const {
           ESP32C61ROM
-        } = await import('./esp32c61.js?v=4');
+        } = await import('./esp32c61.js?v=5');
         return new ESP32C61ROM();
       }
     case 23:
       {
         const {
           ESP32C5ROM
-        } = await import('./esp32c5.js?v=4');
+        } = await import('./esp32c5.js?v=5');
         return new ESP32C5ROM();
       }
     case 32:
       {
         const {
           ESP32S31ROM
-        } = await import('./esp32s31.js?v=4');
+        } = await import('./esp32s31.js?v=5');
         return new ESP32S31ROM();
       }
     default:
@@ -10176,7 +10176,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32ROM
-        } = await import('./esp32.js?v=4');
+        } = await import('./esp32.js?v=5');
         return new ESP32ROM();
       }
     case 0xc21e06f:
@@ -10185,7 +10185,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C2ROM
-        } = await import('./esp32c2.js?v=4');
+        } = await import('./esp32c2.js?v=5');
         return new ESP32C2ROM();
       }
     case 0x6921506f:
@@ -10195,14 +10195,14 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C3ROM
-        } = await import('./esp32c3.js?v=4');
+        } = await import('./esp32c3.js?v=5');
         return new ESP32C3ROM();
       }
     case 0x2ce0806f:
       {
         const {
           ESP32C6ROM
-        } = await import('./esp32c6.js?v=4');
+        } = await import('./esp32c6.js?v=5');
         return new ESP32C6ROM();
       }
     case 0x2421606f:
@@ -10211,7 +10211,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C61ROM
-        } = await import('./esp32c61.js?v=4');
+        } = await import('./esp32c61.js?v=5');
         return new ESP32C61ROM();
       }
     case 0x1101406f:
@@ -10220,7 +10220,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32C5ROM
-        } = await import('./esp32c5.js?v=4');
+        } = await import('./esp32c5.js?v=5');
         return new ESP32C5ROM();
       }
     case 0xd7b73e80:
@@ -10228,21 +10228,21 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32H2ROM
-        } = await import('./esp32h2.js?v=4');
+        } = await import('./esp32h2.js?v=5');
         return new ESP32H2ROM();
       }
     case 0x09:
       {
         const {
           ESP32S3ROM
-        } = await import('./esp32s3.js?v=4');
+        } = await import('./esp32s3.js?v=5');
         return new ESP32S3ROM();
       }
     case 0x000007c6:
       {
         const {
           ESP32S2ROM
-        } = await import('./esp32s2.js?v=4');
+        } = await import('./esp32s2.js?v=5');
         return new ESP32S2ROM();
       }
     case 0xfff0c101:
@@ -10258,7 +10258,7 @@ async function magic2Chip(magic) {
       {
         const {
           ESP32P4ROM
-        } = await import('./esp32p4.js?v=4');
+        } = await import('./esp32p4.js?v=5');
         return new ESP32P4ROM();
       }
     default:
@@ -10660,8 +10660,17 @@ class ESPLoader {
    */
   async _connectAttempt(mode = "default_reset", resetStrategy) {
     this.debug("_connect_attempt " + mode);
+    let resetError = "";
     if (resetStrategy) {
-      await resetStrategy.reset();
+      try {
+        await resetStrategy.reset();
+      } catch (error) {
+        // Web Serial control-line changes can fail on some native USB ports
+        // even when the chip was already put into download mode manually.
+        // Keep going and try SYNC before giving up on the device.
+        resetError = error instanceof Error ? error.message : String(error);
+        this.debug(`Reset sequence failed; trying sync anyway: ${resetError}`);
+      }
     }
     const readBytes = this.transport.peek();
     const binaryString = Array.from(readBytes, byte => String.fromCharCode(byte)).join("");
@@ -10676,7 +10685,7 @@ class ESPLoader {
       downloadMode = !!match[2];
     }
     this.debug(`bootMode:${bootMode} downloadMode:${downloadMode}`);
-    let lastError = "";
+    let lastError = resetError;
     for (let i = 0; i < 5; i++) {
       try {
         this.debug(`Sync connect attempt ${i}`);
@@ -17717,16 +17726,27 @@ const flash = async (onEvent, port, manifestPath, manifest, eraseFirst) => {
     await esploader.flashId();
   } catch (err) {
     console.error(err);
+    const errorText = err instanceof Error ? err.message : String(err);
+    const detectedChip = esploader.chip && esploader.chip.CHIP_NAME;
+    const errorMessage = detectedChip ? T(`Detected ${detectedChip}, but the flasher or flash chip could not be initialized: ${errorText}`, `已识别到 ${detectedChip}，但刷机加载器或 Flash 初始化失败：${errorText}`) : T(`Could not connect to or identify the chip: ${errorText}. Hold BOOT, tap RESET/EN, then try again.`, `无法连接或识别芯片：${errorText}。请按住 BOOT，短按 RESET/EN 后重试。`);
     fireStateEvent({
       state: "error" /* FlashStateType.ERROR */,
-      message: T("Failed to initialize. Try resetting your device or holding the BOOT button while clicking INSTALL.", "初始化失败。请尝试重置设备，或在点击安装时按住 BOOT 按钮。"),
+      message: errorMessage,
       details: {
         error: "failed_initialize" /* FlashError.FAILED_INITIALIZING */,
-        details: err
+        details: errorText
       }
     });
-    await hardResetDevice(transport, esploader);
-    await transport.disconnect();
+    try {
+      await hardResetDevice(transport, esploader);
+    } catch (resetError) {
+      console.warn("Unable to reset device after initialization failure", resetError);
+    }
+    try {
+      await transport.disconnect();
+    } catch (disconnectError) {
+      console.warn("Unable to close serial port after initialization failure", disconnectError);
+    }
     return;
   }
   chipFamily = esploader.chip.CHIP_NAME;
